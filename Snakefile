@@ -88,9 +88,10 @@ rule QC_pre_trim:
         reverse_html="02.QC/pre_trim/{sample}/{sample}_2_fastqc.html"
     threads: 5
     params:
-        program=config['programs_path']['fastqc']
+        program=config['programs_path']['fastqc'],
+        out_dir=lambda w, output: path.dirname(output.forward_html)
     shell:
-        "{params.program} --outdir 02.QC/pre_trim/{wildcards.sample}/ "
+        "{params.program} --outdir {params.out_dir}/ "
         "--threads {threads} {input.forward} {input.rev}"
 
 rule SummarizeQC_pre_trim:
@@ -102,9 +103,10 @@ rule SummarizeQC_pre_trim:
         "02.QC/pre_trim/multiqc_report.html"
     threads: 1
     params:
-        program=config['programs_path']['multiqc']
+        program=config['programs_path']['multiqc'],
+        out_dir=lambda w, output: path.dirname(output[0])
     shell:
-        "{params.program} --interactive -f 02.QC/pre_trim/ -o 02.QC/pre_trim/"
+        "{params.program} --interactive -f {params.out_dir} -o {params.out_dir}"
 
             
 adaptors=config['parameters']['trimmomatic']['adaptors']
@@ -148,9 +150,10 @@ rule QC_post_trim:
         reverse_html="04.QC/post_trim/{sample}/{sample}_2_fastqc.html"
     threads: 5
     params:
-        program=config['programs_path']['fastqc']
+        program=config['programs_path']['fastqc'],
+        out_dir=lambda w, output: path.dirname(output.forward_html) 
     shell:
-        "{params.program} --outdir 04.QC/post_trim/{wildcards.sample}/ "
+        "{params.program} --outdir {params.out_dir} "
         "--threads {threads} {input.forward} {input.rev}"
 
 rule SummarizeQC_post_trim:
@@ -161,10 +164,11 @@ rule SummarizeQC_post_trim:
     output:
         "04.QC/post_trim/multiqc_report.html"
     params:
-        program=config['programs_path']['multiqc']
+        program=config['programs_path']['multiqc'],
+        out_dir=lambda w, output: path.dirname(output[0])
     threads: 1
     shell:
-        "{params.program} --interactive -f 04.QC/post_trim/ -o 04.QC/post_trim/"
+        "{params.program} --interactive -f {params.out_dir} -o {params.out_dir}"
 
 #---- Build index and map reads to index using bwa mem
 rule Build_Host_index:
@@ -232,10 +236,11 @@ rule QC_unmapped_reads:
         forward_html="08.QC/unmapped_reads/{sample}/{sample}_1_fastqc.html",
         reverse_html="08.QC/unmapped_reads/{sample}/{sample}_2_fastqc.html"
     params:
-        program = config['programs_path']['fastqc']
+        program = config['programs_path']['fastqc'],
+        out_dir= lambda w, output: path.dirname(output.forward_html)
     threads: 5
     shell:
-        "{params.program} --outdir 08.QC/unmapped_reads/{wildcards.sample}/ "
+        "{params.program} --outdir {params.out_dir} "
         "--threads {threads} {input.forward} {input.rev}"
 
 rule SummarizeQC_unmapped_reads_and_alignment:
@@ -247,10 +252,12 @@ rule SummarizeQC_unmapped_reads_and_alignment:
         "08.QC/unmapped_reads/multiqc_report.html"
     threads: 1
     params:
-        program = config['programs_path']['multiqc']
+        program = config['programs_path']['multiqc'],
+        out_dir = lambda w, output: path.dirname(output[0]),
+        filter_dir= "07.Filter_unmapped_reads/" 
     shell:
-        "{params.program} --interactive -f 07.Filter_unmapped_reads/ "
-        "08.QC/unmapped_reads/ -o 08.QC/unmapped_reads/"
+        "{params.program} --interactive -f {params.filter_dir} "
+        "{params.out_dir} -o {params.out_dir}"
 
 rule Concat_reads:
     input:
@@ -509,7 +516,7 @@ rule PhyloFlash_classify:
     params:
         program=config['programs_path']['phyloflash']['main'],
         conda_activate=config['conda']['python2']['env'],
-        out_dir="12.PhyloFlash_classify/{sample}",
+        out_dir=lambda w, output: path.dirname(output.html),
         summarise_at=config['parameters']['phyloflash']['summarize_at']
     threads: 20
     shell:
@@ -624,14 +631,18 @@ rule Diamond_blastx:
     #threads: workflow.cores * 0.75 # set maximum threads to 75% of the avaliable cores
     threads: 10
     resources:
-        # remember to set the --restart-times option to how many attempy you woul like sankemake to try example --restart-times 3 for 3 attempts
-        mem_mb=lambda wildcards, attempt: attempt * 500 # this will automatically increament the amount of memmory required by 500MB for every failed attempt 
+        # remember to set the --restart-times option to how many attempy you 
+        # would like sankemake to try example --restart-times 3 for 3 attempts.
+        # this will automatically increament the amount of memmory required 
+        # by 500MB for every failed attempt
+        mem_mb=lambda wildcards, attempt: attempt * 500 
     shell:
         "{params.program} blastx --query {input} --daa {output} --db {params.database} --threads {threads} --unal 1"
 
 rule Megan_classify:
     input:
-        rules.Diamond_blastx.output # This just says that this rule is dependent on Diamond_blastx
+        # This just says that this rule is dependent on Diamond_blastx
+        rules.Diamond_blastx.output
     output:
         temp("14.Megan_classify/{sample}/{sample}.tkn")
     params:
@@ -686,7 +697,8 @@ rule mOtus_classify:
 
 rule mOtus_merge_phylum:
     input:
-        expand('15.mOtus_classify/{sample}/{sample}.phylum.motus', sample=config['samples'])
+        expand('15.mOtus_classify/{sample}/{sample}.phylum.motus',
+                sample=config['samples'])
     output:
         '15.mOtus_classify/merged.phylum.motus'
     params:
@@ -701,7 +713,8 @@ rule mOtus_merge_phylum:
 
 rule mOtus_merge_class:
     input:
-        expand('15.mOtus_classify/{sample}/{sample}.class.motus', sample=config['samples'])
+        expand('15.mOtus_classify/{sample}/{sample}.class.motus',
+                sample=config['samples'])
     output:
         '15.mOtus_classify/merged.class.motus'
     params:
@@ -717,7 +730,8 @@ rule mOtus_merge_class:
 
 rule mOtus_merge_order:
     input:
-        expand('15.mOtus_classify/{sample}/{sample}.order.motus', sample=config['samples'])
+        expand('15.mOtus_classify/{sample}/{sample}.order.motus',
+                sample=config['samples'])
     output:
         '15.mOtus_classify/merged.order.motus'
     params:
@@ -733,7 +747,8 @@ rule mOtus_merge_order:
 
 rule mOtus_merge_family:
     input:
-        expand('15.mOtus_classify/{sample}/{sample}.family.motus', sample=config['samples'])
+        expand('15.mOtus_classify/{sample}/{sample}.family.motus',
+                sample=config['samples'])
     output:
         '15.mOtus_classify/merged.family.motus'
     params:
@@ -749,7 +764,8 @@ rule mOtus_merge_family:
 
 rule mOtus_merge_genus:
     input:
-        expand('15.mOtus_classify/{sample}/{sample}.genus.motus', sample=config['samples'])
+        expand('15.mOtus_classify/{sample}/{sample}.genus.motus',
+                sample=config['samples'])
     output:
         '15.mOtus_classify/merged.genus.motus'
     params:
@@ -765,7 +781,8 @@ rule mOtus_merge_genus:
 
 rule mOtus_merge_mOTU:
     input:
-        expand('15.mOtus_classify/{sample}/{sample}.mOTU.motus', sample=config['samples'])
+        expand('15.mOtus_classify/{sample}/{sample}.mOTU.motus',
+               sample=config['samples'])
     output:
         '15.mOtus_classify/merged.mOTU.motus'
     params:
@@ -786,7 +803,8 @@ rule Humann2_classify:
     input:
         "09.Concat_reads/{sample}/{sample}.fastq.gz"
     output:
-        bugs_list="16.Humann2_classify/{sample}/{sample}_humann2_temp/{sample}_metaphlan_bugs_list.tsv",
+        bugs_list="16.Humann2_classify/{sample}/{sample}_humann2_temp/"
+                  "{sample}_metaphlan_bugs_list.tsv",
         gene_families="16.Humann2_classify/{sample}/{sample}_genefamilies.tsv",
         pathabundance="16.Humann2_classify/{sample}/{sample}_pathabundance.tsv",
         pathcoverage="16.Humann2_classify/{sample}/{sample}_pathcoverage.tsv"
@@ -815,10 +833,13 @@ rule Humann2_classify:
 
 rule Metaphlan_merge:
     input:
-        expand("16.Humann2_classify/{sample}/{sample}_humann2_temp/{sample}_metaphlan_bugs_list.tsv", sample=config['samples'])
+        expand("16.Humann2_classify/{sample}/{sample}_humann2_temp/"
+               "{sample}_metaphlan_bugs_list.tsv",
+                sample=config['samples'])
     output:
         tsv="16.Humann2_classify/Export/metaphlan2_merged.tsv",
-        spf="16.Humann2_classify/Export/metaphlan2_merged.spf" # STAMP format required for further downstream analyses
+        # STAMP format required for further downstream analyses
+        spf="16.Humann2_classify/Export/metaphlan2_merged.spf"
     params:
         conda_activate=config['conda']['metagenomics']['env'],
         program=config['programs_path']['metaphlan']['merge_metaphlan'],
@@ -838,7 +859,8 @@ rule Metaphlan_merge:
 
 rule Metaphlan2krona:
     input:
-        "16.Humann2_classify/{sample}/{sample}_humann2_temp/{sample}_metaphlan_bugs_list.tsv"
+        "16.Humann2_classify/{sample}/{sample}_humann2_temp/"
+        "{sample}_metaphlan_bugs_list.tsv"
     output:
         "16.Humann2_classify/{sample}/{sample}_humann2_temp/{sample}.krona.txt"
     params:
@@ -901,7 +923,7 @@ rule Humann2_normalize:
 #    params:
 #    shell:
 
-# ------------------------ Assembly based analysis -----------------------------------------
+# ------------------------ Assembly based analysis ---------------------------------
 
 # Assembly and annotation per sample
 
@@ -914,7 +936,7 @@ rule Assembly_per_sample:
     log:
         "17.Assembly_per_sample/{sample}/{sample}.log"
     params:
-        out_dir="17.Assembly_per_sample/{sample}/",
+        out_dir=lambda w, output: path.dirname(output.contigs),
         program=config['programs_path']['megahit']
     threads: 10
     shell:
@@ -930,14 +952,15 @@ rule Assembly_per_sample:
 
 rule QC_assembly_per_sample:
     input:
-        expand("17.Assembly_per_sample/{sample}/{sample}.contigs.fa", sample=config['samples'])
+        expand("17.Assembly_per_sample/{sample}/{sample}.contigs.fa",
+               sample=config['samples'])
     output:
         "18.QC_assembly_per_sample/report.html",
         "18.QC_assembly_per_sample/icarus.html"
     log:
         "18.QC_assembly_per_sample/metaquast.log"
     params:
-        out_dir="18.QC_assembly_per_sample/",
+        out_dir=lambda w, output: path.dirname(output[0]),
         program=config['programs_path']['metaquast'],
         conda_activate=config['conda']['metagenomics']['env']
     threads: 10
@@ -964,7 +987,7 @@ rule MetaErg_Annotation_per_sample:
         program="{bin}/metaerg.pl".format(bin=config['programs_path']['metaerg']),
         PERL5LIB=config['conda']['metaerg']['perl5lib'],
         conda_activate=config['conda']['metaerg']['env'],
-        out_dir="18.MetaErg_Annotation_per_sample/{sample}/",
+        out_dir= lambda w, output: path.dirname(output.contigs),
         db_dir=config['databases']['metaerg'],
         min_contig_len=config['parameters']['metaerg']['min_contig_len']
     shell:
@@ -984,10 +1007,11 @@ rule MetaErg_Annotation_per_sample:
          {input} 2> {log}
         """
 
-#-----------------Assembly-based finding proteins of interest --------------------------------
+# -----------------Assembly-based finding proteins of interest -------------------------------
 rule assembly_find_proteins:
     input:
-        query="18.MetaErg_Annotation_per_sample/{sample}/data/cds.faa", # coding sequences
+        # coding sequences
+        query="18.MetaErg_Annotation_per_sample/{sample}/data/cds.faa",
         database=path.splitext(config['databases']['proteins_of_interest'])[0] + '.dmnd'
     output:
         tsv="19.assembly_find_proteins/{sample}/{sample}_matches.tsv",
@@ -1119,15 +1143,18 @@ rule Convert_Bam2Depth_per_sample:
 
 rule Co_Assembly:
     input:
-        forward=expand("07.Filter_unmapped_reads/{sample}/{sample}.F.fastq", sample=config['samples']),
-        rev=expand("07.Filter_unmapped_reads/{sample}/{sample}.R.fastq", sample=config['samples']),
-        single=expand("07.Filter_unmapped_reads/{sample}/{sample}.R.fastq", sample=config['samples'])        
+        forward=expand("07.Filter_unmapped_reads/{sample}/{sample}.F.fastq", 
+                       sample=config['samples']),
+        rev=expand("07.Filter_unmapped_reads/{sample}/{sample}.R.fastq", 
+                    sample=config['samples']),
+        single=expand("07.Filter_unmapped_reads/{sample}/{sample}.R.fastq",
+                       sample=config['samples'])        
     output:
         contigs="23.Co_Assembly/coassembly/coassembly.contigs.fa"
     log:
         "23.Co_Assembly/coassembly/coassembly.log"
     params:
-        out_dir="23.Co_Assembly/coassembly/",
+        out_dir= lambda w, output: path.dirname(output.contigs),
         program=config['programs_path']['megahit'],
         prefix="coassembly"
     threads: 40
@@ -1159,7 +1186,7 @@ rule QC_Coassembly:
     log:
         "24.QC_Coassembly/coassembly/metaquast.log"
     params:
-        out_dir="24.QC_Coassembly/coassembly/",
+        out_dir= lambda w, output: path.dirname(output[0]),
         program=config['programs_path']['metaquast'],
         conda_activate=config['conda']['metagenomics']['env']
     shell:
@@ -1245,7 +1272,8 @@ rule Sort_sam_of_CoAssembly:
 
 rule Convert_Bam2Depth_of_CoAssembly:
     input:
-        expand("27.Sort_sam_of_CoAssembly/{sample}/{sample}.sorted.bam", sample=config['samples'])
+        expand("27.Sort_sam_of_CoAssembly/{sample}/{sample}.sorted.bam",
+               sample=config['samples'])
     output:
         "28.Convert_Bam2Depth_of_CoAssembly/coassembly/coassembly.depth.txt"
     log:
@@ -1279,7 +1307,7 @@ rule MetaErg_CO_Annotate:
         program="{bin}/metaerg.pl".format(bin=config['programs_path']['metaerg']),
         PERL5LIB=config['conda']['metaerg']['perl5lib'],
         conda_activate=config['conda']['metaerg']['env'],
-        out_dir="29.MetaErg_CO_Annotate/coassembly/",
+        out_dir= lambda w, output: path.dirname(output.contigs),
         db_dir=config['databases']['metaerg'],
         prefix="coassembly",
         min_contig_len=config['parameters']['metaerg']['min_contig_len']
@@ -1302,26 +1330,27 @@ rule MetaErg_CO_Annotate:
          {input.contigs} 2> {log}
         """
 
-## ---------------- Binning, refining and Qality Check of bins ----------------------------------------------------------
+## ---------------- Binning, refining and Qality Check of bins --------------------------------
 
 # Binning per sample using metabat
 rule Bin_assembly_per_sample:
     input:
-        contigs="18.MetaErg_Annotation_per_sample/{sample}/{sample}.fna", # bin only contigs with length >= 200bp
+        # Bin only contigs with length >= 200bp
+        contigs="18.MetaErg_Annotation_per_sample/{sample}/{sample}.fna",
         depth="22.Convert_Bam2Depth_per_sample/{sample}/{sample}.depth.txt"
     output:
         directory("30.Bin_assembly_per_sample/{sample}/")
     params:
         program=config['programs_path']['metabat']['metabat'],
         conda_activate=config['conda']['base']['env'],
-        out_dir="30.Bin_assembly_per_sample/{sample}/"
+        #out_dir="30.Bin_assembly_per_sample/{sample}/"
     threads: 10
     shell:
         """
         set +u
         {params.conda_activate}
         set -u
-        {params.program} -i {input.contigs} -a {input.depth} -o {params.out_dir}/genome 
+        {params.program} -i {input.contigs} -a {input.depth} -o {output}/genome 
         """
 
 
@@ -1376,7 +1405,7 @@ rule classify_bins_per_sample:
         -x {params.fasta_extension} \
         --out_dir {output} \
         --prefix {wildcards.sample} \
-        --cpus {params.threads} 2>&1 {log}
+        --cpus {params.threads} 2> {log}
         """
 
 localrules: metaerg_annotate_bins_per_sample

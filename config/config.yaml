@@ -2,7 +2,7 @@ sample_file: "config/sample.tsv"
 
 samples: ['A', 'A1', 'A2', 'B', 'L2', 'L3', 'L4', 'L5', 'L7', 'L8']
 
-project_dir: "/gpfs0/bioinfo/users/obayomi/hinuman_analysis/shotGunMetagenomics/test"
+project_dir: "/gpfs0/bioinfo/users/obayomi/shotGunMetagenomics/documentation/snakemake-workflow/"
 
 raw_data_dir: "01.raw_data/"
 
@@ -10,6 +10,7 @@ project_name: "Duckweed"
 
 host_genome: "genomes/WA_and_Phix_genome.fna"
 
+# Full paths the specified programs
 programs_path:
     multiqc: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/multiqc"
     trim_Galore: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/trim_galore"
@@ -87,6 +88,7 @@ databases:
       acc2eggnog: "/gpfs0/bioinfo/users/obayomi/megan/acc2eggnog-Jul2019X.abin"
 
 
+# Set tool specific parameters
 parameters:
     kaiju: 
         evalue: 1e-5
@@ -105,7 +107,7 @@ parameters:
         taxa2display: 25
         min_ntu_count: 100
 
-
+# full paths t your conda environments 
 conda:
     base:   
         env: "source activate /gpfs0/bioinfo/users/obayomi/miniconda3/"
