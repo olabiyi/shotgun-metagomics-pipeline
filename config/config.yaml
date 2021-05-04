@@ -1,0 +1,130 @@
+sample_file: "sample.tsv"
+
+samples: ['A', 'A1', 'A2', 'B', 'L2', 'L3', 'L4', 'L5', 'L7', 'L8']
+
+project_dir: "/gpfs0/bioinfo/users/obayomi/hinuman_analysis/shotGunMetagenomics/test"
+
+raw_data_dir: "01.raw_data/"
+
+project_name: "Duckweed"
+
+host_genome: "genomes/WA_and_Phix_genome.fna"
+
+programs_path:
+    multiqc: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/multiqc"
+    trim_Galore: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/trim_galore"
+    trimmomatic: "java -jar /fastspace/bioinfo_apps/Trimmomatic-0.32/trimmomatic-0.32.jar"
+    biom_convert: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/biom convert"
+    bwa: "/gpfs0/bioinfo/users/obayomi/miniconda3/bin/bwa"
+    bowtie: 
+        bowtie: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/bowtie2"
+        build: "/gpfs0/bioinfo/apps/bowtie2/bowtie2-2.3.5-linux-x86_64/bowtie2-build"
+    centrifuge: 
+         classify: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/centrifuge"
+         report: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/centrifuge-kreport"
+    fastqc: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/fastqc"
+    humann2: 
+        humann2: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/humann2"
+        renorm: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/humann2_renorm_table"
+        mpa_dir: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin"
+    samtools: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/samtools"
+    phyloflash: 
+        main: "/gpfs0/bioinfo/users/obayomi/miniconda3/envs/python2/bin/phyloFlash.pl"
+        compare: "/gpfs0/bioinfo/users/obayomi/miniconda3/envs/python2/bin/phyloFlash_compare.pl"
+    diamond: "/gpfs0/bioinfo/users/obayomi/bin/diamond"
+    motus:   "/gpfs0/bioinfo/users/obayomi/miniconda3/bin/motus"
+    metaerg: "perl /gpfs0/bioinfo/users/obayomi/metaerg/bin" 
+    jgi_summarize: "/gpfs0/bioinfo/users/obayomi/metabat/jgi_summarize_bam_contig_depths"
+    metabat:
+        metabat: "/gpfs0/bioinfo/users/obayomi/metabat/metabat"
+        path: "export PATH=/gpfs0/bioinfo/users/obayomi/metabat/:$PATH"
+    checkm: "/gpfs0/bioinfo/users/obayomi/miniconda3/bin/checkm lineage_wf"
+    megan:
+        meganizer: "/gpfs0/bioinfo/users/obayomi/megan/tools/daa-meganizer"
+        daa2rma: "/gpfs0/bioinfo/users/obayomi/megan/tools/daa2rma"
+    kaiju: 
+        kaiju:          "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/kaiju"
+        kaiju2krona:    "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/kaiju2krona"
+        kaiju2table:    "/gpfs0/bioinfo/apps/kaiju/kaiju_master_20190404/bin/kaiju2table"
+    kraken:
+        kraken: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/kraken2"
+        kraken_biom: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/kraken-biom"
+        combine_reports: "/gpfs0/bioinfo/users/obayomi/KrakenTools/combine_kreports.py"
+    kt_import_taxonomy: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/ktImportTaxonomy"
+    kt_import_text: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/ktImportText"
+    metaquast:  "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/lib/python2.7/site-packages/quast-5.0.2-py2.7.egg-info/scripts/metaquast.py"
+    megahit: "/gpfs0/bioinfo/users/obayomi/miniconda3/bin/megahit"
+    metaphlan:
+        metaphlan: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/metaphlan2.py"
+        metaphlan2stamp: "/gpfs0/bioinfo/users/obayomi/microbiome_helper/metaphlan_to_stamp.pl"
+        merge_metaphlan: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/merge_metaphlan_tables.py"
+        metaphlan2krona: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/bin/metaphlan2krona.py"
+    parallel: "/gpfs0/bioinfo/users/obayomi/bin/parallel"
+
+databases:
+    centrifuge: "/gpfs0/bioinfo/databases/Centrifuge/db_arch_bact_vir_2018/"
+    humann2:
+        chocophlan: "/gpfs0/bioinfo/databases/Humann2/chocophlan/chocophlan/"
+        uniref50: "/gpfs0/bioinfo/databases/Humann2/uniref50/"  # Folder containing uniref 50 diamond database
+        uniref90: "/gpfs0/bioinfo/databases/Humann2/uniref90/uniref/"
+    kaiju:
+        names: "gpfs0/bioinfo/databases/kaiju_databases/kaijudb_archaea_bacteria_viral_euk_nr_2018/names.dmp"
+        nodes:   "/gpfs0/bioinfo/databases/kaiju_databases/kaijudb_archaea_bacteria_viral_euk_nr_2018/nodes.dmp"
+        fmi:     "/gpfs0/bioinfo/databases/kaiju_databases/kaijudb_archaea_bacteria_viral_euk_nr_2018/kaiju_db_nr_euk.fmi"
+    kraken: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/databases/kraken2/"
+    krona_taxonomy: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/databases/krona/taxonomy"
+    proteins_of_interest: "/gpfs0/bioinfo/projects/Amit_Gross/03.Metagenomics_stormwater_biofiltration/proteins_of_interest/proteins_of_interest.ffa"
+    contaminant:
+        fasta: "/gpfs0/bioinfo/users/obayomi/hinuman_analysis/shotGunMetagenomics/genomes/WA_and_Phix_genome.fna"
+        bwa_ind: "/gpfs0/bioinfo/users/obayomi/hinuman_analysis/shotGunMetagenomics/genomes/WA_and_Phix_genome.fna"
+    diamond: 
+        nr: "/gpfs0/bioinfo/users/obayomi/databases/nr"
+    metaerg: "/gpfs0/bioinfo/users/obayomi/metaerg/db/"
+    megan:
+      acc2taxa: "/gpfs0/bioinfo/users/obayomi/megan/prot_acc2tax-Jul2019X1.abin"
+      acc2seed: "/gpfs0/bioinfo/users/obayomi/megan/acc2seed-May2015XX.abin"
+      acc2interpro: "/gpfs0/bioinfo/users/obayomi/megan/acc2interpro-Jul2019X.abin"
+      acc2eggnog: "/gpfs0/bioinfo/users/obayomi/megan/acc2eggnog-Jul2019X.abin"
+
+
+parameters:
+    kaiju: 
+        evalue: 1e-5
+    metaerg:
+        min_contig_len: 200
+    trimmomatic:
+        adaptors: "/fastspace/bioinfo_apps/Trimmomatic-0.32/adapters/TruSeq3-PE.fa"
+        min_len: 30
+    find_protein:
+        percent_identity: 85
+        query_coverage: 60
+        evalue: 1e-5
+        out_format: "6 qseqid sseqid stitle pident length mismatch gapopen qstart qend sstart send evalue bitscore"
+    phyloflash:
+        summarize_at: 7
+        taxa2display: 25
+        min_ntu_count: 100
+
+
+conda:
+    base:   
+        env: "source activate /gpfs0/bioinfo/users/obayomi/miniconda3/"
+        perl5lib: "export PERL5LIB=/gpfs0/bioinfo/users/obayomi/miniconda3/lib/5.32.0"
+    metagenomics:
+        env: "source activate /gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/" 
+        perl5lib: "export PERL5LIB=/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/lib/site_perl/5.26.2/x86_64-linux-thread-multi"
+    python2: 
+        env: "source activate /gpfs0/bioinfo/users/obayomi/miniconda3/envs/python2/"
+        perl5lib: "export PERL5LIB=gpfs0/bioinfo/users/obayomi/miniconda3/envs/python2/lib/5.26.2/x86_64-linux-thread-multi"
+    metaerg: 
+        env: "source activate /gpfs0/bioinfo/users/obayomi/miniconda3/envs/metaerg/"
+        perl5lib: "export PERL5LIB=/gpfs0/bioinfo/users/obayomi/miniconda3/envs/metaerg/lib/5.26.2"
+    gtdb-tk: 
+        env: "source activate /gpfs0/bioinfo/users/obayomi/miniconda3/envs/gtdbtk/"
+        perl5lib: "export PERL5LIB=/gpfs0/bioinfo/users/obayomi/miniconda3/lib/5.32.0"
+    bioinfo: 
+        env: "source activate /gpfs0/bioinfo/users/obayomi/miniconda3/envs/bioinfo/"
+        perl5lib: "export PERL5LIB=/gpfs0/bioinfo/users/obayomi/miniconda3/envs/bioinfo/lib/5.26.2"
+    neatseq_flow:
+        env: "source activate /gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/NeatSeq_Flow/"
+        perl5lib: "export PERL5LIB=/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/NeatSeq_Flow/lib/site_perl/5.26.2/x86_64-linux-thread-multi"
