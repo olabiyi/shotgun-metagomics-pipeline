@@ -1,7 +1,8 @@
 # Snakemake workflow: shotgun metagenomics
 
-[![Snakemake](https://img.shields.io/badge/snakemake-≥5.29.0-brightgreen.svg)](https://snakemake.bitbucket.io)
-![Tests](https://github.com/snakemake-workflows/rad-seq-stacks/workflows/Tests/badge.svg)
+![metagenomics-workflow][images/rulegraph.png]
+
+This repository contains a snakemake pipeline for performing read and assembly based shotgun metagenomics using established tools and pipelines. It also contains scripts that can be run directly on a linux terminal and high peformance cluster in the `scripts` folder if you are not familiar with snakemake. Please do not forget to cite the authors of the tools used.
 
 ## Authors
 

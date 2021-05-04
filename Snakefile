@@ -8,7 +8,7 @@ onerror:
     print("An error occurred")
     shell("mail -s 'An error occurred' obadbotanist@yahoo.com < {log}")
 
-configfile: "config.yaml"
+configfile: "config/config.yaml"
 
 sample_file = config["sample_file"]
 
@@ -1418,7 +1418,7 @@ rule metaerg_annotate_bins_per_sample:
                 	-g ${{BIN_ANNOTATION_DIR}}/${{BIN}}/${{BIN}}.gff \
                 	-f ${{BIN_CONTIGS}} \
                 	-o ${{BIN_ANNOTATION_DIR}}/${{BIN}}/ \
-                	> ${{BIN_ANNOTATION_DIR}}/${{BIN}}/${{BIN}}.log  2>&1 {log};
+                	> ${{BIN_ANNOTATION_DIR}}/${{BIN}}/${{BIN}}.log  2>&1;
 
 	}
 

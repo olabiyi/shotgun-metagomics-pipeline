@@ -1,4 +1,4 @@
-sample_file: "sample.tsv"
+sample_file: "config/sample.tsv"
 
 samples: ['A', 'A1', 'A2', 'B', 'L2', 'L3', 'L4', 'L5', 'L7', 'L8']
 
