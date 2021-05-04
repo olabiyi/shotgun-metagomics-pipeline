@@ -1,6 +1,6 @@
-# Snakemake workflow: shotgun metagenomics
+# Snakemake workflow: shotgun metagenomic
 
-<img alt="metagenomics-workflow" src="https://github.com/olabiyi/shotgun-metagomics-pipeline/blob/main/images/rulegraph.png" width="100O" height="500">
+<img alt="metagenomics-workflow" src="images/rulegraph.png">
 
 This repository contains a snakemake pipeline for performing read and assembly based shotgun metagenomics using established tools and pipelines. It also contains scripts that can be run directly on a linux terminal and high peformance cluster in the `scripts` folder if you are not familiar with snakemake. Please do not forget to cite the authors of the tools used.
 
