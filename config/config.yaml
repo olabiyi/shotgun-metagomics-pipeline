@@ -6,6 +6,8 @@ project_dir: "/gpfs0/bioinfo/users/obayomi/shotGunMetagenomics/documentation/sna
 
 raw_data_dir: "01.raw_data/"
 
+paired: True
+
 project_name: "Duckweed"
 
 host_genome: "genomes/WA_and_Phix_genome.fna"
@@ -69,7 +71,7 @@ databases:
         uniref50: "/gpfs0/bioinfo/databases/Humann2/uniref50/"  # Folder containing uniref 50 diamond database
         uniref90: "/gpfs0/bioinfo/databases/Humann2/uniref90/uniref/"
     kaiju:
-        names: "gpfs0/bioinfo/databases/kaiju_databases/kaijudb_archaea_bacteria_viral_euk_nr_2018/names.dmp"
+        names: "/gpfs0/bioinfo/databases/kaiju_databases/kaijudb_archaea_bacteria_viral_euk_nr_2018/names.dmp"
         nodes:   "/gpfs0/bioinfo/databases/kaiju_databases/kaijudb_archaea_bacteria_viral_euk_nr_2018/nodes.dmp"
         fmi:     "/gpfs0/bioinfo/databases/kaiju_databases/kaijudb_archaea_bacteria_viral_euk_nr_2018/kaiju_db_nr_euk.fmi"
     kraken: "/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenomics/databases/kraken2/"

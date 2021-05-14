@@ -1,0 +1,207 @@
+---
+title: "General Information"
+author: "Olabiyi Obayomi"
+date: "4 5 2021"
+output: html_document
+params:
+  metadata_file: 'mapping_files/metadata.tsv'
+  group: "Biofilter_media"
+  analysis: "kaiju"
+---
+
+<style type="text/css">
+.main-container {
+max-width: 1500px;
+margin-left: auto;
+margin-right: auto;
+}
+</style>
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+
+# Raw feature table file outputs from running kaiju2table in linux
+files <- list.files(here::here('data/kaiju/'),pattern = '.tsv', full.names = TRUE) 
+names(files) <- files %>% str_replace_all(pattern = '.+\\.(\\w+)\\.tsv',replacement = '\\1')  %>% toTitleCase()
+analysis_name <- "colored_short_kaiju_taxonomy"
+taxon_levels <- c("Phylum", "Class",  "Order", "Family", "Genus", "Species")
+names(taxon_levels) <- taxon_levels
+metadata_file <- here::here('mapping_files/metadata.tsv')
+plot_dir <- here::here(glue::glue('results/kaiju/'))
+# Groups used for testing interactions and for betaDiversity ploting
+main_groups <- c("Biofilter_media", "Biofilter_configuration", "Event") 
+# Groups used for alpha diversity statistics, box plots and barz plots
+groups <- c("Biofilter_media", "Group")
+names(groups) <- groups
+x_labs <- c("Biofilter Media", "Group")
+names(x_labs) <- x_labs
+
+Biofilter_media_colors <- c(G="chocolate4", S="darkgoldenrod1")
+
+Biofilter_configuration_colors <- c(CAR="mediumseagreen", NV="red2", NVNB="mediumblue")
+
+Event_colors <- c(A="lightsalmon1", B="plum2",  C="lightslateblue", D="mislvrose3", E="lightseagreen")
+
+Group_colors <- c(Negative_control="white",Slurry_control="brown",Positive_control="tan4",
+                  A.G_CAR="seagreen1", B.G_CAR="seagreen2", 
+                  C.G_CAR="seagreen3", D.G_CAR="seagreen4", E.G_CAR="palegreen4",
+                  A.G_NV="chocolate1", B.G_NV="chocolate2",
+                  C.G_NV="chocolate3", D.G_NV="chocolate4", E.G_NV="coral4",
+                  A.G_NVNB="bisque2", B.G_NVNB="bisque3", C.G_NVNB="bisque4",
+                  D.G_NVNB="azure2", E.G_NVNB="azure3",
+                  A.S_CAR="chartreuse", B.S_CAR="chartreuse3", 
+                  C.S_CAR="chartreuse4", D.S_CAR="darkolivegreen1", E.S_CAR="darkgreen",
+                  A.S_NV="darkorange", B.S_NV="darkorange3", 
+                  C.S_NV="darkorange4", D.S_NV="orange", E.S_NV="orange3",
+                  A.S_NVNB="gray", B.S_NVNB="darkslategray1", C.S_NVNB="darkslategray4",
+                  D.S_NVNB="darkslategrey", E.S_NVNB="gray7")
+
+annotation_colors <- list(Biofilter_media=c(NONE='white', G="chocolate4", S="darkgoldenrod1"),
+                          Biofilter_configuration=c(NONE="white",CAR="mediumseagreen", NV="red2", NVNB="mediumblue"),
+                          Event=c(Negative_control="powderblue",Slurry_control="maroon1",Positive_control="black",
+                                  A="lightsalmon1", B="plum2",  C="lightslateblue", D="mislvrose3", E="lightseagreen"))
+
+
+sample_order <- 
+  c('59.EX-B_17052019', '60.B-SC_22052019', '61.TC1_C1_30092019',
+    
+    '01.G-CAR-11_200619_G2', '11.G-CAR-14_29082019','12.G-CAR-7_29082019', '23.G-CAR-3_12112019',
+    '24.G-CAR-7_12112019', '35.G-CAR-11_10122019', '36.G-CAR-7_10122019', '47.G-CAR-3_10012020', '48.G-CAR-7_10012020',
+    
+    '02.G-NV-2_20062019', '03.G-NV-8_20062019', '13.G-NV-2_29082019', '14.G-NV-8_290819', '25.G-NV-2_12112019', '26.G-NV-8_12112019', '37.G-NV-2_10122019', '38.G-NV-8_10122019', '49.G-NV-2_10012020', '50.G-NV-8_10012020',
+    
+    '04.G-NVNB-12_20062019', '05.G-NVNB-4_20062019', '15.G-NVNB-12_29082019', '16.G-NVNB-6_29082019', '27.G-NVNB-12_12112019', '28.G-NVNB-4_12112019', '39.G-NVNB-12_10122019', '40.G-NVNB-6_10122019', '51.G-NVNB-12_10012020', '52.G-NVNB-4_10012020',
+    
+    '06.S-CAR-19_20062019', '07.S-CAR-24_20062019', '17.S-CAR-19_29082019', '18.S-CAR-31_29082019',
+    '29.S-CAR-19_12112019', '30.S-CAR-31_12112019', '41.S-CAR-19_10122019', '42.S-CAR-24_10122019', '53.S-CAR-24_10012020', '54.S-CAR-31_10012020',
+    
+    '08.S-NV-26_20062019', '09.S-NV-30_20062019', '19.S-NV-18_29082019', '20.S-NV-26_29082019', '31.S-NV-18_12112019', '32.S-NV-26_12112019', '43.S-NV-26_10122019', '44.S-NV-30_10122019', '55.S-NV-26_10012020', '56.S-NV-30_10012020',
+    
+    '10.S-NVNB-20_20062019', '21.S-NVNB-20_29082019','22.S-NVNB-32_29082019', '33.S-NVNB-20_12112019', '34.S-NVNB-28_12112019', '45.S-NVNB-20_10122019', '46.S-NVNB-28_10122019', '57.S-NVNB-20_10012020', '58.S-NVNB-28_10012020'
+  )
+
+
+
+Group_order <- c('Negative_control','Slurry_control','Positive_control',
+                 "A.G_CAR", "B.G_CAR", "C.G_CAR", "D.G_CAR", "E.G_CAR",
+                 "A.G_NV", "B.G_NV", "C.G_NV", "D.G_NV", "E.G_NV",
+                 "A.G_NVNB", "B.G_NVNB", "C.G_NVNB", "D.G_NVNB", "E.G_NVNB",
+                 "A.S_CAR", "B.S_CAR", "C.S_CAR", "D.S_CAR", "E.S_CAR",
+                 "A.S_NV", "B.S_NV", "C.S_NV", "D.S_NV", "E.S_NV",
+                 "A.S_NVNB", "B.S_NVNB", "C.S_NVNB", "D.S_NVNB", "E.S_NVNB")
+
+Biofilter_media_order <- c("NONE", "G", "S")
+
+Event_order <- c('Negative_control','Slurry_control','Positive_control', 'A', 'B', 'C', 'D', 'E')
+
+Biofilter_configuration_order <- c("NONE", "CAR", "NV", "NVNB")
+
+
+
+
+factors_order <-  list("Sample_name" = sample_order ,
+                       "Group" = Group_order,
+                       "Biofilter_media" = Biofilter_media_order,
+                       "Event" = Event_order,
+                       "Biofilter_configuration" = Biofilter_configuration_order)
+
+```
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+
+# Prepare feature tables
+taxon_tables <- map(.x = files,.f = process_kaiju_table)
+# sort the taxon tables by taxon level from phylum to species
+taxon_tables <- taxon_tables[taxon_levels]
+```
+
+
+# General information
+
+
+This report is a short version of my initial report. In this report I only report results for "Group" comparisons. However, the statistics for the Group (combination of all factors at different time points) is not statistically sound and hence unreliable because each time point had less than three samples necessary for proper statistical analysis. All the tables and many plots presented in this report are interactive, searchable and downloadable.
+
+
+### Sample metadata table
+
+
+The table below shows the metadata used for the analyses.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+# Prepare the metadata
+# Read-in the metatdata
+
+columns2keep <- c("Sample_name", "Plate", "Well",  "Group" , 
+                  "Event" , "Date", "Biofilter_media", 
+                  "Biofilter_configuration")
+
+metadata <-  read_delim(file = metadata_file, delim = "\t", col_names = TRUE) %>%
+  as.data.frame(stringAsFactor=FALSE)
+
+# Correct the name of "61.TC1 C1_30092019" to "61_TC1 C1_30092019" to match that used in the feature table
+metadata$Sample_name <-  gsub(pattern = " ",replacement = "_", x = metadata$Sample_name)
+
+metadata$Date <- lubridate::dmy(metadata$Date)
+rownames(metadata) <- metadata$Sample_name
+
+
+for(column in colnames(metadata)){
+  if(is.character(metadata[,column])){
+    metadata[,column]<- tidyr::replace_na(metadata[,column], 'NONE')
+    metadata[,column] <- gsub(pattern = "NA ",replacement = '', x = metadata[,column])
+  }
+}
+
+
+# Set factor order
+for(factor_column in names(factors_order)){
+  
+  metadata[,factor_column] <- factor(x = metadata[,factor_column], levels = factors_order[[factor_column]])
+  
+}
+
+
+create_dt(metadata)
+metadata <- metadata[,columns2keep]
+metadata <- metadata %>% rownames_to_column(var = "Sample.ID") %>% as.data.frame()
+
+rownames(metadata) <- metadata[,"Sample.ID"]
+
+# remove control samples
+no_control_metadata <- droplevels(metadata[-(59:61),])
+```
+
+
+### The number of samples per treatment category
+
+This table shows the count of how many samples (N) were available at each category level. 
+
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+categories_freq_df <- metadata %>% 
+  mutate(Sample_name=as.character(Sample_name)) %>% 
+  summary(maxsum=100) %>% 
+  as.data.frame() 
+
+categories_freq_df[complete.cases(categories_freq_df),] %>% 
+  dplyr::select(Var2:Freq) %>% 
+  dplyr::filter(str_detect(Var2,"Bio|Event|Group")) %>% 
+  dplyr::select(Category=Var2, N=Freq) %>% 
+  droplevels() %>% 
+  separate(col = N,into = c("Treatment","N"), sep = ":") %>% 
+  dplyr::mutate(N=as.numeric(N)) %>% 
+  dplyr::filter(N > 0) %>% 
+  create_dt()
+
+
+
+
+```
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+save.image(file = glue::glue('{plot_dir}/{analysis_name}.RData'))
+sessionInfo()
+```

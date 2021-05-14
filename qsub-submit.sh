@@ -19,9 +19,11 @@ export PERL5LIB='/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenom
 # snakemake -s snakefile --dag | dot -Tpng > dag.png
 
 # Run snmakemake on the cluster
+# submit a maximum 100 jobs
+#  # wait for 60 seconds before declaring that a job has failed
 snakemake \
 	--cluster-config config/config.yaml \
 	--cluster "qsub -q {cluster.queue} -S {cluster.shell} -cwd -V -N {rule} -pe shared {threads}" \
-	--jobs 100 \ # submit a maximum 100 jobs
-	--latency-wait 60 # wait for 60 seconds before declaring that a job has failed
+	--jobs 100 \ 
+	--latency-wait 60 
 

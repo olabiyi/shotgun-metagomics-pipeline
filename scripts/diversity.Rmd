@@ -1,0 +1,728 @@
+---
+title: "Diversity analysis"
+author: "Olabiyi Aderemi Obayomi"
+date: "`r date()`"
+output: 
+  html_document:  
+    mathjax: null
+    style: "yeti"
+    toc: true
+    number_sections: true
+    toc_depth: 6 
+    toc_float: false
+params:
+  info_rdata: "general_info.RData"
+---
+
+
+<style type="text/css">
+.main-container {
+max-width: 1500px;
+margin-left: auto;
+margin-right: auto;
+}
+</style>
+
+
+```{r setup, echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+#load(here::here("testing.RData"))
+
+func_env <- new.env()
+source(here::here('scripts/shotgun_functions.R'), local = func_env)
+attach(func_env)
+knitr::opts_chunk$set(echo = FALSE)
+
+```
+
+
+### The number of sequences per sample
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+
+taxon_table <-  taxon_tables$Species$abundance_table  
+# remove all unclassified sequences
+# unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+#taxon_table <- taxon_table[-unclassified_rows,]
+
+
+# Create a phyloseq object
+ps <- phyloseq(otu_table(taxon_table, taxa_are_rows = T), sample_data(metadata))
+
+vector2dataframe(named_vector = colSums(otu_table(ps)), column_name = "Sequences_per_sample") %>%
+  rownames_to_column("Sample") %>% create_dt()
+
+```
+
+
+
+# Diversity Analysis
+
+
+Alpha (within sample) and Beta (between samples) diversity analyses were performed at the species level, which was the lowest taxonomy assignment available. Prior to the analyses and in all other analysis in this report, unclassified sequences were filtered out.
+
+
+## Alpha diversity
+
+
+### Rarefaction curves
+
+
+**Based on the number of sequences per sample above, I chose 291,496 for rarefaction to even depth** which was both efficient in terms of speed and captured the diversity of the samples. The negative control sample (59.EX-B_17052019) was dropped from further analysis due to its low read depth compared to the other samples. 
+
+You can see from the rarefaction curves below that all sample curves tended towards saturation, which means that the rarefaction depth chosen (291,496) was enough to capture the diversity of the samples. 
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=8, fig.width=14}
+microbe_rarefaction_rds <- glue::glue("{plot_dir}/microbe_rarefaction.rds") 
+if(file.exists(microbe_rarefaction_rds)){
+  microbe_rarefaction <- readRDS(microbe_rarefaction_rds)
+}else{
+# Rarefy the samples to even depth and plot the rarefaction curves
+microbe_rarefaction <- rarefaction(ps= ps, depth = 291400, with_replace = TRUE ,col=custom_palette)
+saveRDS(object = microbe_rarefaction, file = microbe_rarefaction_rds)
+}
+samples <- sample_data(microbe_rarefaction$ps.rarefied) %>% rownames()
+names(samples) <- samples
+
+# rarefaction_table <- map_dfr(.x = seq_along(microbe_rarefaction$rare_curve),.f = get_rarefaction_df, rare_curve_list=microbe_rarefaction$rare_curve)
+rarefaction_table <- map2_dfr(.x = seq_along(microbe_rarefaction$rare_curve),
+                              .y = samples,
+                              .f = function(index=.x, sample=.y){
+                                get_rarefaction_df(sample_index =index, sample = sample, rare_curve_list=microbe_rarefaction$rare_curve)})
+
+# Add columns for groups to be colored by 
+rarefaction_table <- rarefaction_table %>% 
+  bind_cols(map_dfc(.x = groups,
+                    .f = map_sample_to_category,
+                    sample_vector=rarefaction_table$sample,
+                    metadata=metadata)) %>% droplevels
+
+rarefaction_table_plot <- ggplot(data = rarefaction_table,
+                                 mapping = aes(x=sequences, y=observed_species, color=sample)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(x="Number of sequences", y="Observed species") + 
+  publication_format + 
+  scale_color_manual(values = custom_palette) + 
+  theme(legend.position = "none")
+
+group_plots <- map(groups, .f = function(group){
+  
+  
+  summary_table <- desc_statby(rarefaction_table %>% filter(!!sym(group) != "NONE"), measure.var = "observed_species", grps = c(group,"sequences"))
+  summary_table <- pavian::zero_if_na(summary_table)
+  
+  if(!is.null(annotation_colors[[group]])){
+    
+    colours <- annotation_colors[[group]]
+    
+  }else{
+    
+    colours <- custom_palette
+    
+  }
+  
+  ggplot(data = summary_table, mapping = aes_string(x="sequences", y="mean", color=group)) + 
+    geom_point() + 
+    geom_line() + 
+    geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=0.2) +
+    labs(x="Number of sequences", y="Observed species") +
+    publication_format + 
+    scale_color_manual(values = colours)
+  
+})
+
+group_plots[['samples']] <- rarefaction_table_plot 
+```
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.height=15, fig.width=20}
+wrap_plots(group_plots, ncol = 2)
+```
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=8, fig.width=14}
+ggplotly(rarefaction_table_plot)
+```
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+
+alpha <- map(.x = groups, .f = function(group=.x){
+  
+  # Estimate alpha diversity
+  alpha_diversity(ps.rarefied = microbe_rarefaction$ps.rarefied, 
+                  metadata = subset(x = metadata, select = group), 
+                  group = group)
+}
+)
+
+```
+
+
+
+### Raw alpha diversity by sample table
+
+
+The raw alpha diversity value per sample including control samples (except the negative control) and their accompanying metadata information that could be used for other post hoc analyses if need be.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+# Any of the groups Diversity table can be used since the samples are the same but just grouped differently
+diversity.df <- alpha$Group$diversity.df %>% rownames_to_column(var = "Samples") %>% 
+  dplyr::select(-starts_with("ACE")) %>% 
+  dplyr::select(-ends_with("ACE")) %>% 
+  dplyr::select(-Group) %>% # Drop the group column that will be added from the metadata
+  mutate_if(.predicate = is.numeric,.funs = round, digits=2) %>% 
+  as.data.frame(check.names=FALSE)
+rownames(diversity.df) <- diversity.df[,"Samples"]
+diversity.df <- diversity.df[,-(which(colnames(diversity.df) == "Samples"))]
+
+
+diversity.df <- cbind(metadata[rownames(diversity.df),],diversity.df) 
+
+diversity.df <- diversity.df %>% 
+  dplyr::select(-Sample.ID, -se.chao1)  %>% 
+  dplyr::select(Sample_name,everything())
+
+diversity.df %>% 
+  create_dt()
+```
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+# Exclude the control samples from further analysis
+no_control_diversity <- diversity.df %>% 
+  dplyr::select(Biofilter_media, Biofilter_configuration,
+                Event, Group,
+                Observed:InvSimpson) %>%
+  dplyr::slice(1:58)
+
+diversity_long.df  <- pivot_longer(data =no_control_diversity, cols = Observed:InvSimpson,
+                                   names_to = "measures", values_to = 'value')
+
+diversity_metrics <- unique(diversity_long.df$measures)
+names(diversity_metrics) <- diversity_metrics 
+
+```
+
+
+### Testing for significant interactions
+
+A three-way model ANOVA was performed to test if the mean diversity measure (Observed, Shannon, Chao1, Simpson and InvSimpson) differed after the 5 events (time points), between factors (Biomedia, Bioconfiguration, Event) and if there were statistically significant interactions between these factors.
+For example, a significant Biofilter_media:Biofilter_configuration interaction will mean that the relationship between the Biomedia (G or S) and the diversity metric (Observed Species, Shannon etc.) depends on Biofilter configuration (CAR, NV and NVNB).
+
+
+
+#### Anova table
+
+A summary anova table for the three-way anova performed on all test alpha diversity metrics (Observed Species, Shannon, Chao1, Simpson and InvSimpson) including the main effects (i.e. Bio media, Bio configuration and Event/time) and their interactions. df = degrees of freedom; sumsq = sum of squares; meansq = mean sum of squares; statistic - anova F-value.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+## Setting Biofilter as the main effect and testing the intercations
+terms_formula <- "Biofilter_media*Biofilter_configuration*Event"
+
+diversity_anova_results <- map(.x = diversity_metrics, .f = function(metric=.x, terms=terms_formula, response="value"){
+  
+  factorial_anova(formula = reformulate(termlabels = terms,
+                                        response = 'value'),
+                  Data = subset(diversity_long.df, measures == metric), y = "value", is_one_predictor = FALSE)
+})
+
+
+map_dfr(.x = diversity_metrics, 
+        .f = function(metric=.x) { diversity_anova_results[[metric]]$anova_test %>% 
+            dplyr::mutate(Metric=metric) %>% 
+            dplyr::select(Metric, everything()) }) %>% 
+  dplyr::mutate(across(where(is.numeric), round, digits=3)) %>% 
+  create_dt()
+
+```
+
+
+#### Tukey HSD posthoc test pairwise p-value table
+
+This table shows the p-values for the pairwise comparison between groups for every diversity metric tested using Tukey HSD test. The contrast column can be interpreted as x Vs y for x-y contrast. For example, S-G means the pairwise comparison between S vs G.
+
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+# P-value table
+map_dfr(.x = diversity_metrics, .f = function(metric=.x){ 
+  
+  diversity_anova_results[[metric]]$Tukey_posHoc_test %>% mutate(across(where(is.numeric), round, digits=3)) %>% mutate(Metric=!!metric) %>% dplyr::select(Metric, everything())
+  
+}) %>% 
+  create_dt()
+
+```
+
+
+#### Compact letter display
+
+
+Different letters mean significant difference at p < 0.05 using Tukey HSD test. The table should be interpreted on a column by column basis for each diversity metric.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+
+term_names <- names(diversity_anova_results$Observed$compact_letters)
+names(term_names) <- term_names
+
+map_dfr(.x = term_names, function(term_name=.x){
+  
+  map_dfc(.x = diversity_metrics, .f = function(metric=.x){
+    
+    vector2dataframe(named_vector = diversity_anova_results[[metric]]$compact_letters[[term_name]]$Letters,
+                     column_name = metric)
+  }) %>% rownames_to_column("Group") %>% mutate(Term=!!term_name) %>% dplyr::select(Term,everything()) 
+  
+}) %>% create_dt()
+
+```
+
+
+#### Assumptions testing
+
+
+Shapiro wilk's normality test (shapiro_pval) on the residuals was used to test if the residuals for the anova model were normally distributed while the outlier test (bonf_outlier_pval) was to test if their were statistically significant outliers. All the assumptions were met (p>0.05) except for the Simpson diversity metric. 
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+map_dfr(.x = diversity_metrics, .f = function(metric=.x){
+  diversity_anova_results[[metric]]$assumptions_test %>% 
+    mutate(Metric=!!metric) %>% 
+    mutate_if(is.numeric, round, digits=3) %>% 
+    dplyr::select(Metric, everything())
+} ) %>%  create_dt()
+```
+
+
+###  Comparing Treatment Groups
+
+
+#### Diversity plot
+
+The box plot shows the distribution of Observed Species and Shannon diversity measures for samples while comparing between a combination of Bio filters (bio media and configuration) and Event (time).
+
+
+##### Ordered by treatment events
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=8, fig.width=16}
+alpha$Group$plot$data$Group <- factor(x = alpha$Group$plot$data$Group,
+                                      levels = Group_order)
+
+
+gg <- ggplot(data = alpha$Group$plot$data %>% filter(str_detect(Group,"control",negate = TRUE)),
+             aes(x=Group, y=value)) + 
+  geom_point() +
+  geom_boxplot() + 
+  facet_wrap(~variable, scales = "free_y") + 
+  labs(x= '', y="Alpha Diversity Measure") +
+  publication_format + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+
+gg 
+```
+
+
+##### Ordered by events
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=8, fig.width=16}
+alpha$Group$plot$data$Group <- factor(x = alpha$Group$plot$data$Group,
+                                      levels = sort(Group_order))
+
+
+gg <- ggplot(data = alpha$Group$plot$data %>% filter(str_detect(Group,"control",negate = TRUE)),
+             aes(x=Group, y=value)) + 
+  geom_point() +
+  geom_boxplot() + 
+  facet_wrap(~variable, scales = "free_y") + 
+  labs(x= '', y="Alpha Diversity Measure") +
+  publication_format + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+
+gg 
+```
+
+
+##### Bar plot
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+
+paritial_group_bar_plot <- partial(group_bar_plot, df=no_control_diversity, x="Event",
+                                   groups=c("Biofilter_media", "Biofilter_configuration", "Event"),
+                                   palette=annotation_colors$Biofilter_media,
+                                   x_lab = "Event", bar_color="Biofilter_media",
+                                   facet_by="Biofilter_configuration")
+
+bar_plots <- map(.x = diversity_metrics, .f = function(metric=.x){
+  paritial_group_bar_plot(y=metric, y_lab=metric)
+}
+)
+
+
+
+```
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=16, fig.width=16}
+combine_plots(graphs = bar_plots,Title = 'Alpha diversity bar plots',Xlab = 'Events')
+```
+
+
+##### Statistics
+
+
+Comparing the mean diversity measure between sample groups ( i.e. the combination of Bio filters (bio media and configuration) and Event)) using Kruskal Wallis and one-way anova tests with anova's assumptions (normality and equality of variance) being tested.  DF = anova degrees of freedom; shapiro_pval = shapiro p-value for the test of the normality of residuals; Levene_pval = Levene's test for the equality of variance; anova_pval = the one-way anova p-value; kruskal_statistic = Kruskal Wallis test statistic (H) and kruskal_pval = Kruskal Wallis test p-value. P-values less than 0.05 means that the specific assumption of the one-way anova test was violated hence the non-parametric Kruskal Wallis test results should be used instead.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+#  Find where there are significant differences between treatments
+p_adj <- "none"
+group <- "Group"
+y <- "value"
+
+# Kruskal wallis and Annova test with assumptions testing
+map_dfr(.x = diversity_metrics, .f =  function(metric=.x){
+  
+  anova_analysis(x=group, y = y,
+                 Data = subset(diversity_long.df, measures == metric) %>% as.data.frame()) %>% 
+    dplyr::mutate(Metric=metric) %>% 
+    dplyr::select(Metric, everything()) %>% 
+    dplyr::mutate(across(where(is.numeric), round, digits=3))
+  
+}) %>% create_dt()
+
+
+```
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+# necessary for estimating fold change
+mean_diversity_measure <- summarise_groups(diversity_long.df, diversity_metrics,"measures", group, "value")
+
+```
+
+
+##### Pairwise comparison between treatment Groups
+
+
+This table shows the pairwise comparison between treatment "Group"s using Dunn test. T-test didn't work at all because there are just too few samples, moreover the assumption were not met, while Wilcoxon test reported no significant difference. Z = Dunn test statistic, p = p-value; p.adj = adjusted p-value using holm's p adjustment method; p.format = formatted p-value; p.signif = p-value significance; ns = not significant; * statistically significant at p < 0.05.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+# Get the names of treatments with less then two replicates
+#treatments_to_exclude <- table(droplevels(data2use)$Group) %>% Filter(function(x) x < 2, .) %>% names
+# Pairwise comparison between levels
+comp <- map_dfr(.x = diversity_metrics, .f = function(metric=.x){
+  data2use <-  subset(diversity_long.df, measures ==  metric) %>% 
+    as.data.frame(check.names=FALSE)
+  pairwise_test(Data=data2use, group=group, y_col="value", metric=metric, method="Dunn")
+  
+}
+)
+
+add_foldchange_to_pairwise_table(df = comp, metric_column = "Metric",
+                                 group1_column = "group1", 
+                                 group2_column = "group2",
+                                 mean_table = mean_diversity_measure) %>% 
+  mutate_if(is.numeric, round, digits=3) %>% 
+  create_dt()
+#comp %>% mutate_if(is.numeric, round, digits=3) %>% create_dt()
+#comp %>% filter(p.signif != 'ns')
+
+# Compact letters display
+comp_letters <- map_dfc(.x = diversity_metrics, function(metric=.x){
+  
+  sub_comp <- comp %>% filter(Metric == metric)
+  p_values <- sub_comp$p
+  names(p_values) <- paste(sub_comp$group1,sub_comp$group2, sep = "-")
+  vector2dataframe(multcompView::multcompLetters(p_values)$Letters, metric)
+}) %>% rownames_to_column(group)
+
+```
+
+
+#### Diversity table
+
+Mean and standard error (SE) table of the different treatment groups (bio media, bio configuration and events) for the alpha diversity metrics tested. N is the number of samples for each treatment group. Different letters mean significant difference at p < 0.05 using Wilcoxon's pairwise comparison. Please ignore the strange capital A character after the means that the computer inserts when rendering this report. NA is displayed as standard error whenever there is only one sample per treatment. As noted earlier this results can't be trusted because there are less than 3 samples per treatment group.
+
+
+```{r  echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+# Summarize diversity by Treatment Groups
+# Summarize diversity by  Bioconfiguration Event
+group1 <- "Biofilter_media"
+group2 <- "Biofilter_configuration"
+group3 <- "Event"
+
+mean_se_df <- diversity.df %>% 
+  dplyr::select(!!group1, !!group2, !!group3, Observed:InvSimpson) %>%
+  dplyr::filter(!!sym(group1) != "NONE") %>% 
+  dplyr::group_by(!!sym(group1), !!sym(group2), !!sym(group3)) %>% 
+  dplyr::summarise(N=n(),across(Observed:InvSimpson,list(mean = mean, SE = SE), .names = "{.col}_{.fn}")) %>% 
+  dplyr::mutate(across(where(is.numeric), round, digits=2)) %>% 
+  as.data.frame()
+
+
+
+ROW_NAMES <- paste(mean_se_df[, group3],mean_se_df[,group1], sep = ".")
+ROW_NAMES <- paste(ROW_NAMES, mean_se_df[,group2], sep = "_")
+new_names <- toTitleCase(c(group1,group2,group3) %>%  str_replace_all("_|\\.", " "))
+
+diversity_table <- map_dfc(.x = diversity_metrics, .f = function(metric=.x){
+  
+  meatric_mean_se <- mean_se_df %>% 
+    ungroup() %>% 
+    dplyr::select(grep(pattern = metric, x = colnames(.))) %>% 
+    as.data.frame()
+  
+  rownames(meatric_mean_se) <- ROW_NAMES
+  
+  rownames(comp_letters) <- comp_letters[,group]
+  
+  combine_mean_se_and_letters(meatric_mean_se, comp_letters[,metric, drop=FALSE], colname = metric)
+  
+}) %>% as.data.frame(checknames=FALSE)
+
+rownames(diversity_table) <- comp_letters[,group]
+
+diversity_table <- diversity_table %>% 
+  rownames_to_column(group) %>% 
+  separate(col = !!group,into =  c(group3,group1,group2),sep = "_|\\.") %>%
+  mutate(N=mean_se_df$N) %>% 
+  dplyr::select(!!sym(group1), !!sym(group2), !!sym(group3), N, everything()) %>% as.data.frame(check.names=FALSE)
+
+colnames(diversity_table)[colnames(diversity_table) %in% c(group1,group2,group3) %>% which()] <- new_names
+diversity_table %>% 
+  create_dt()
+```
+
+
+## Beta diversity
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+# Generate the centered log-ratio transformed feature table - samples rows
+remove_rare <- TRUE
+taxon_table <- taxon_tables$Species$abundance_table[,rownames(no_control_metadata)]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+no_control_feature_table <- taxon_table %>% as.matrix() 
+
+if(remove_rare){
+  # keep on only features with relative abundance greater than or equal to 1%  
+  abundant_features <- apply(X = pavian::normalize(no_control_feature_table), MARGIN = 1, FUN = function(x) max(x) >= 1/100)
+  no_control_feature_table <- no_control_feature_table[abundant_features,]
+}
+
+no_control_feature_table <- no_control_feature_table %>% t()
+
+# Replace zero values with an estimate probability of zero - no zeros after removing rare
+d.n0 <- zCompositions::cmultRepl(no_control_feature_table,  label=0, method="CZM", output="p-counts")
+# Apply clr transformation on every sample
+clr_table <- apply(X = no_control_feature_table %>% as.matrix(), MARGIN = 1, FUN = compositions::clr)
+combinations <- utils::combn(main_groups,2)
+```
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+
+All_plots <- pca_combination(mat=t(clr_table),
+                             metadata = no_control_metadata,
+                             combinations = combinations, 
+                             annotation_colors = annotation_colors, 
+                             plot_dir = plot_dir,
+                             save_plots=TRUE)
+```
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+# Color plots by Events alone
+shape_factors <- c("Biofilter_media", "Biofilter_configuration")
+
+for (Factor in shape_factors) {
+  
+  
+  color_factor <- "Event"
+  shape_factor <- Factor
+  plot_title <- str_c(color_factor,' Vs ',shape_factor) %>% str_replace_all('_',' ') %>% toTitleCase()
+  All_p <- plot_pca(mat = t(clr_table), metadata = no_control_metadata, 
+                    color_factor = color_factor, 
+                    shape_factor = shape_factor,
+                    sample_column = "Sample.ID") + 
+    scale_color_manual(values = annotation_colors[[color_factor]]) + publication_format + labs(color=toTitleCase(color_factor) %>% str_replace_all('_',' '),                                                                                               shape=toTitleCase(shape_factor) %>% str_replace_all('_',' '))
+  #print(ggplotly(All_p + ggtitle(sprintf('%s and %s-All Genes',color_factor,shape_factor))))
+  All_plots[[plot_title]] <- All_p
+  ggsave(filename = paste0(plot_dir,'/', color_factor,'-',shape_factor,'-_pca.png'), 
+         plot = All_p, device = 'png',
+         width = 14, height = 8, dpi = 600 )
+  
+  
+}
+```
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+color_factor <- "Biofilter_media"
+shape_factor <- "Biofilter_configuration"
+size_factor <- "Event"
+shapes <- c(CAR='circle', NV='cross', NVNB='square')
+
+All_p <- plot_pca(mat = t(clr_table), metadata = no_control_metadata, 
+                  color_factor = color_factor, shape_factor = shape_factor, 
+                  sample_column = "Sample.ID")
+
+All_p$data$Size <- as.numeric(no_control_metadata[,size_factor])
+All_p <- All_p + 
+  geom_point(aes(size=as.numeric(Size))) + 
+  scale_size_continuous(labels=c('A','B', 'C', 'D', 'E'), range = c(2, 10)) +
+  scale_color_manual(values = annotation_colors[[color_factor]]) +
+  scale_shape_manual(values=shapes) +
+  labs(color=toTitleCase(color_factor) %>% str_replace_all('_',' '),                                                        shape=toTitleCase(shape_factor) %>% str_replace_all('_',' '),
+       size= toTitleCase(size_factor) %>% str_replace_all('_',' ')) +
+  publication_format
+
+
+ggsave(filename = paste0(plot_dir,'/','Group_pca.png'),
+       plot = All_p, device = 'png', width = 14, height = 8, dpi = 600 )
+
+All_plots[['Group']] <- All_p
+```
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+
+sub_groups <- c("Event", "Biofilter_configuration")
+combinations <- utils::combn(sub_groups,2)
+
+# Make PCA plots for GAC and Sand separately
+biomedia_samples <- list(gac=no_control_metadata %>% dplyr::filter(Biofilter_media == 'G') %>% pull(Sample.ID),
+                         sand=no_control_metadata %>% dplyr::filter(Biofilter_media == 'S') %>% pull(Sample.ID))
+
+
+sub_plots <- map(.x = biomedia_samples,.f = function(samples=.x){
+  
+  
+  pca_combination(mat=t(clr_table[, samples]), metadata = no_control_metadata[samples,],
+                  combinations = combinations, annotation_colors=annotation_colors, save_plots=FALSE)
+  
+})
+
+```
+
+
+### PCA plots
+
+Microbiome community structure of the Bio filters. Principal component analysis (PCA) plot on the euclidean distance matrix generated from center log ratio transformed Species abundance values. Points/samples that are closer together on the ordination have Species that are more similar.
+
+
+#### Static plots 
+
+
+The PCA plots show distinct clustering of Species by Bio Filter Media (G vs S).
+
+
+```{r echo=FALSE, include=TRUE, fig.align= 'center', fig.height=15, fig.width=20, comment='', message=FALSE, warning = FALSE}
+# Wrap All pca plots
+wrap_plots(All_plots, ncol = 2)
+```
+
+
+**GAC** and **SAND** samples plotted separately
+
+```{r echo=FALSE, include=TRUE, fig.align= 'center', fig.height=8, fig.width=20, comment='', message=FALSE, warning = FALSE}
+# Wrap All pca plots
+wrap_plots(list(sub_plots$gac$`Event vs Biofilter Configuration` + ggtitle("GAC"), 
+                sub_plots$sand$`Event vs Biofilter Configuration` + ggtitle("SAND")), 
+           ncol = 2, guides = "collect")
+```
+
+
+#### 2D
+
+
+```{r echo=FALSE, include=TRUE, fig.align='center', fig.height=8, fig.width=14, comment='', message=FALSE, warning = FALSE}
+
+ggplotly(All_plots[['Group']])
+```
+
+
+#### 3D
+
+
+**Colored by Bio media**
+
+
+```{r echo=FALSE, include=TRUE, fig.align='center', fig.height=8, fig.width=14, comment='', message=FALSE, warning = FALSE}
+
+#my_symbols <- c(CAR='circle', NV='triangle-up', NVNB='square',)
+my_symbols <- c('circle','x', 'square')
+#my_symbols <- c(1,0,4)
+# The size of the points must be specified as a ranged and not as explicit numbers
+sizes <- c(20,60)
+plot3D_pca(mat = t(clr_table), metadata = no_control_metadata,
+           axis1 = "PC1", axis2 = "PC2", axis3 = "PC3",
+           color_factor=color_factor, shape_factor = shape_factor,
+           size_factor = size_factor, sample_column='Sample.ID',
+                     syms2use=my_symbols, 
+           colors2use=annotation_colors[[color_factor]], 
+           sizes2use=sizes)
+
+```
+
+
+**Colored by Event**
+
+
+```{r echo=FALSE, include=TRUE, fig.align='center', fig.height=8, fig.width=14, comment='', message=FALSE, warning = FALSE}
+
+#my_symbols <- c(CAR='circle', NV='triangle-up', NVNB='square',)
+my_symbols <- c('circle', 'square')
+#my_symbols <- c(1,0,4)
+# The size of the points must be specified as a ranged and not as explicit numbers
+sizes <- c(20,60)
+plot3D_pca(mat = t(clr_table), metadata = no_control_metadata,
+           axis1 = "PC1", axis2 = "PC2", axis3 = "PC3",
+           color_factor=size_factor, shape_factor = color_factor,
+          sample_column='Sample.ID', syms2use=my_symbols, 
+           colors2use=annotation_colors[[size_factor]])
+
+```
+
+
+
+### PERMANOVA test for significant clustering between treament groups
+
+Permutational multivariate analysis of variance  (PERMANOVA) indicated highly significant (P<0.001) differences between the abundance of Species between Bio filter Media types (G and S) and Group.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+map_dfr(.x = groups, .f = function(group=.x){
+  
+  permanova_res <- permanova(mat = t(clr_table), y_vect = no_control_metadata[,group])
+  broom::tidy(permanova_res$aov.tab) %>% 
+    dplyr::mutate(Category=group) %>% 
+    dplyr::select(Category, everything()) %>% 
+    dplyr::mutate(across(where(is.numeric), round, digits=3))
+  
+}) %>% create_dt()
+```
+
+
+### PERMANOVA test on the interactions
+
+
+The interactions and main effects were significant significant p < 0.05 except for the interaction between Biofilter_configuration and Event (p > 0.05).
+
+
+```{r echo=FALSE, include=TRUE, comment='',message = FALSE, warning = FALSE}
+interactions <- apply(combinations, MARGIN = 2, FUN = str_c, collapse='*')
+formula <- reformulate(c(main_groups,interactions), response = 'd')
+cat("All Species\n")
+d <- vegan::vegdist(t(clr_table), method = 'euclidean')
+permanova(formula = formula, metadata = no_control_metadata, mat = t(clr_table))
+
+```
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+save.image(file = glue::glue('{plot_dir}/{analysis_name}.RData'))
+sessionInfo()
+```

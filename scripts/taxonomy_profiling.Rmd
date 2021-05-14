@@ -1,0 +1,1372 @@
+---
+title: "Taxonomy profiling"
+author: "Olabiyi Obayomi"
+date: "4 5 2021"
+output: html_document
+params:
+  info_rdata: "general_info.RData"
+---
+
+# Taxonomy profile and differential abundance testing
+
+Differential abundance testing using ANCOM was performed on taxa that had relative abundances greater than or equal to 1%. 
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+## Compositional microbiome data analysis
+# Differential Abundance testing using ANCOM
+# ANCOM 1
+remove_rare <- TRUE
+cut_off <- 1/100
+remove_unclassified <- TRUE
+
+# RUN ANCOM to detect deferentially abundant taxa
+ancom_results <- map(.x = groups,.f = function(group=.x){
+  print(group)
+  map(.x = taxon_levels, .f = function(taxon_level=.x){
+    print(taxon_level)
+    taxon_table <- taxon_tables[[taxon_level]]$abundance_table
+    
+    if(remove_unclassified){
+      
+      unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+      taxon_table <- taxon_table[-unclassified_rows,]
+      
+    }
+    
+    run_ANCOM_I(taxon_table, no_control_metadata, group, 
+                remove_rare = ifelse(test = remove_rare , yes = TRUE, no = FALSE),
+                threshold = cut_off, sig = 0.05, multcorr = 2,
+                repeated = FALSE)
+    
+  })
+  
+})
+
+```
+
+
+## Sample relative abundance heatmaps
+
+Heat maps of the relative abundance of taxa with relative abundances greater than or equal to 5% across all the samples at the phylum to genus levels and greater than or equal to 2% across samples at the species level. The samples are sorted by time point. The numbers displayed on the heat maps are the actual relative abundances in percentage of the specific microbe in the samples.
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+col_annotation <- as.data.frame(metadata)[,c('Event','Biofilter_media', 'Biofilter_configuration')]
+
+#colours = c("darkblue", "blue", "white", "red", "darkred")
+colours <- colorRampPalette(c('white','red'))(255)
+# manually create color range
+hmcol <- c("red", "white", "green")
+# expand the color range
+hmcol <- colorRampPalette(hmcol)(255)
+```
+
+
+### Phylum
+
+
+#### Ordered by treatment event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Phylum$abundance_table[, sample_order]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sample_order], cut_off_percent = 5/100, by_sample = FALSE)
+
+phylum_heatmap <- pheatmap(mat = mat2plot * 100,
+                           cluster_cols = FALSE, 
+                           cluster_rows = TRUE,
+                           annotation_col = col_annotation,
+                           annotation_colors = annotation_colors,
+                           color=colours, 
+                           display_numbers = TRUE, 
+                           number_format = "%.0f")
+```
+
+
+#### Ordered by event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Phylum$abundance_table[, sort(sample_order)]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sort(sample_order)], cut_off_percent = 5/100, by_sample = FALSE)
+
+phylum_heatmap <- pheatmap(mat = mat2plot * 100,
+                           cluster_cols = FALSE, 
+                           cluster_rows = TRUE,
+                           annotation_col = col_annotation,
+                           annotation_colors = annotation_colors,
+                           color=colours, 
+                           display_numbers = TRUE, 
+                           number_format = "%.0f")
+```
+
+
+### Class
+
+
+#### Ordered by treatment event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Class$abundance_table[, sample_order]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sample_order], cut_off_percent = 5/100, by_sample = FALSE)
+
+class_heatmap <- pheatmap(mat = mat2plot * 100,
+                          cluster_cols = FALSE, 
+                          cluster_rows = TRUE,
+                          annotation_col = col_annotation,
+                          annotation_colors = annotation_colors,
+                          color=colours, 
+                          display_numbers = TRUE, 
+                          number_format = "%.0f")
+```
+
+
+#### Ordered by event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Class$abundance_table[, sort(sample_order)]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sort(sample_order)], cut_off_percent = 5/100, by_sample = FALSE)
+
+class_heatmap <- pheatmap(mat = mat2plot * 100,
+                          cluster_cols = FALSE, 
+                          cluster_rows = TRUE,
+                          annotation_col = col_annotation,
+                          annotation_colors = annotation_colors,
+                          color=colours, 
+                          display_numbers = TRUE, 
+                          number_format = "%.0f")
+```
+
+
+### Order
+
+
+#### Ordered by treatment event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Order$abundance_table[, sample_order]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sample_order], cut_off_percent = 5/100, by_sample = FALSE)
+
+order_heatmap <- pheatmap(mat = mat2plot * 100,
+                          cluster_cols = FALSE, 
+                          cluster_rows = TRUE,
+                          annotation_col = col_annotation,
+                          annotation_colors = annotation_colors,
+                          color=colours, 
+                          display_numbers = TRUE, 
+                          number_format = "%.0f")
+```
+
+
+#### Ordered by event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Order$abundance_table[, sort(sample_order)]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sort(sample_order)], cut_off_percent = 5/100, by_sample = FALSE)
+
+order_heatmap <- pheatmap(mat = mat2plot * 100,
+                          cluster_cols = FALSE, 
+                          cluster_rows = TRUE,
+                          annotation_col = col_annotation,
+                          annotation_colors = annotation_colors,
+                          color=colours, 
+                          display_numbers = TRUE, 
+                          number_format = "%.0f")
+```
+
+
+### Family
+
+
+#### Ordered by treatment event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Family$abundance_table[, sample_order]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sample_order], cut_off_percent = 5/100, by_sample = FALSE)
+
+family_heatmap <- pheatmap(mat = mat2plot * 100,
+                           cluster_cols = FALSE, 
+                           cluster_rows = TRUE,
+                           annotation_col = col_annotation,
+                           annotation_colors = annotation_colors,
+                           color=colours, 
+                           display_numbers = TRUE, 
+                           number_format = "%.0f")
+```
+
+
+#### Ordered by event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Family$abundance_table[, sort(sample_order)]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sort(sample_order)], cut_off_percent = 5/100, by_sample = FALSE)
+
+family_heatmap <- pheatmap(mat = mat2plot * 100,
+                           cluster_cols = FALSE, 
+                           cluster_rows = TRUE,
+                           annotation_col = col_annotation,
+                           annotation_colors = annotation_colors,
+                           color=colours, 
+                           display_numbers = TRUE, 
+                           number_format = "%.0f")
+```
+
+
+### Genus
+
+
+#### Ordered by treatment event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Genus$abundance_table[, sample_order]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sample_order], cut_off_percent = 5/100, by_sample = FALSE)
+
+genus_heatmap <- pheatmap(mat = mat2plot * 100,
+                          cluster_cols = FALSE, 
+                          cluster_rows = TRUE,
+                          annotation_col = col_annotation,
+                          annotation_colors = annotation_colors,
+                          color=colours, 
+                          display_numbers = TRUE, 
+                          number_format = "%.0f")
+```
+
+
+#### Ordered by event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+taxon_table <- taxon_tables$Genus$abundance_table[, sort(sample_order)]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sort(sample_order)], cut_off_percent = 5/100, by_sample = FALSE)
+
+genus_heatmap <- pheatmap(mat = mat2plot * 100,
+                          cluster_cols = FALSE, 
+                          cluster_rows = TRUE,
+                          annotation_col = col_annotation,
+                          annotation_colors = annotation_colors,
+                          color=colours, 
+                          display_numbers = TRUE, 
+                          number_format = "%.0f")
+```
+
+
+### Species
+
+
+#### Ordered by treatment event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+
+taxon_table <- taxon_tables$Species$abundance_table[, sample_order]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sample_order], cut_off_percent = 2/100, by_sample = FALSE)
+species_heatmap <- pheatmap(mat = mat2plot * 100,
+                            cluster_cols = FALSE, 
+                            cluster_rows = TRUE,
+                            annotation_col = col_annotation,
+                            annotation_colors = annotation_colors,
+                            color=colours, 
+                            display_numbers = TRUE, 
+                            number_format = "%.0f")
+```
+
+
+#### Ordered by event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+
+taxon_table <- taxon_tables$Species$abundance_table[, sort(sample_order)]
+unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+taxon_table <- taxon_table[-unclassified_rows,]
+mat2plot <-  pavian::normalize(taxon_table)
+mat2plot <- remove_rare_features(feature_table = mat2plot[, sort(sample_order)], cut_off_percent = 2/100, by_sample = FALSE)
+species_heatmap <- pheatmap(mat = mat2plot * 100,
+                            cluster_cols = FALSE, 
+                            cluster_rows = TRUE,
+                            annotation_col = col_annotation,
+                            annotation_colors = annotation_colors,
+                            color=colours, 
+                            display_numbers = TRUE, 
+                            number_format = "%.0f")
+```
+
+
+## Relative abundance bar plots
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+group_rare <- TRUE
+remove_unclassified <- TRUE
+dont_group <- c("Phylum", "Class", "Order")
+# Convert from wide to long format
+relAbundace_tbs_rare_grouped <- map2(.x = taxon_levels, .y = taxon_tables, .f = function(taxon_level=.x, taxon_table=.y){
+  
+  taxon_table <- taxon_table$abundance_table
+  # Append a new column containing the sample names
+  
+  if(remove_unclassified){
+    
+    unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+    taxon_table <- taxon_table[-unclassified_rows,]
+    
+  }
+  
+  taxon_table <- apply(X = taxon_table, MARGIN = 2,FUN = function(x) x/sum(x)) * 100
+  
+  
+  taxon_table <- as.data.frame(taxon_table %>% t())
+  if(group_rare){
+    taxon_table <- group_low_abund_taxa(taxon_table %>%  as.data.frame(check.names=FALSE, stringAsFactor=FALSE),
+                                        threshold = ifelse(test = taxon_level %in% dont_group, yes = 2, no = 5))
+  }
+  taxon_table$samples <- rownames(taxon_table)
+  
+  
+  #change from wide to long format
+  taxon_table <- taxon_table %>% 
+    gather(key= !!taxon_level, value = "relativeAbundance", -samples)
+  taxon_table$samples <- factor(x = taxon_table$samples, levels = sample_order)
+  return(taxon_table)
+})
+```
+
+
+### By samples
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+x_lab <- "Samples"
+y_lab <- "Relative abundance (%)"  
+
+x <-  'samples'  
+y <- "relativeAbundance"
+
+# make plot
+plots_rare_grouped  <- map2(.x = relAbundace_tbs_rare_grouped, .y = taxon_levels, 
+                            .f = function(relAbundace_tb, taxon_level){
+                              ggplot(data =  relAbundace_tb, mapping = aes_string(x=x, y=y)) +
+                                geom_col(aes_string(fill = taxon_level)) + 
+                                publication_format +
+                                labs(x = x_lab , y = y_lab) + 
+                                scale_fill_manual(values = custom_palette) +
+                                theme(axis.text.x=element_text(margin=margin(t=0.5,r=0,b=0,l=0,unit ="cm"), angle = 90, hjust = 0.5, vjust = 0.5)) + 
+                                labs(x='')
+                              
+                            })
+
+# Delete the sample names - i.e. the x text labels for all plots except the lowest rank
+for(taxon_level in taxon_levels[-length(taxon_levels)]){
+  
+  plots_rare_grouped[[taxon_level]] <- plots_rare_grouped[[taxon_level]] + theme(axis.text.x = element_blank())
+  
+}
+```
+
+
+#### Static faceted plots showing only dominant taxa
+
+
+##### Ordered by treatment event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.height=50, fig.width=30}
+wrap_plots(plots_rare_grouped, ncol = 1)
+```
+
+
+##### Ordered by event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.height=50, fig.width=30}
+# sort samples from lowest to highest based on Vered's event manipulation
+for(taxon_level in taxon_levels){
+  
+  plots_rare_grouped[[taxon_level]]$data$samples <- factor(x = plots_rare_grouped[[taxon_level]]$data$samples, levels = sort(sample_order))
+  
+}
+
+wrap_plots(plots_rare_grouped, ncol = 1)
+```
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+group_rare <- FALSE
+remove_unclassified <- TRUE
+maximum_number_of_taxa <- 500
+# Convert from wide to long format
+relAbundace_tbs <- map2(.x = taxon_levels, .y = taxon_tables, .f = function(taxon_level=.x, taxon_table=.y){
+  taxon_table <- taxon_table$abundance_table
+  if(remove_unclassified){
+    
+    unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+    taxon_table <- taxon_table[-unclassified_rows,]
+    
+  }
+  # Append a new column containing the sample names
+  taxon_table <- apply(X = taxon_table, MARGIN = 2,FUN = function(x) x/sum(x)) * 100
+  taxon_table <- as.data.frame(taxon_table %>% t()) 
+  
+  if(ncol(taxon_table) > maximum_number_of_taxa){
+    group_rare <- TRUE
+  }
+  
+  if(group_rare){
+    taxon_table <- group_low_abund_taxa(taxon_table %>%  as.data.frame(check.names=FALSE, stringAsFactor=FALSE),
+                                        threshold = 1)
+    group_rare <- FALSE
+  }
+  taxon_table$samples <- rownames(taxon_table)
+  
+  
+  #change from wide to long format
+  taxon_table <- taxon_table %>% 
+    gather(key= !!taxon_level, value = "relativeAbundance", -samples)
+  taxon_table$samples <- factor(x = taxon_table$samples, levels = sample_order)
+  return(taxon_table)
+})
+```
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+x_lab <- "Samples"
+y_lab <- "Relative abundance (%)"  
+
+x <-  'samples'  
+y <- "relativeAbundance"
+
+# make plot
+plots <- map2(.x = relAbundace_tbs, .y = taxon_levels, 
+              .f = function(relAbundace_tb, taxon_level){
+                ggplot(data =  relAbundace_tb, mapping = aes_string(x=x, y=y)) +
+                  geom_col(aes_string(fill = taxon_level)) + 
+                  publication_format +
+                  labs(x = x_lab , y = y_lab) + 
+                  scale_fill_manual(values = custom_palette) +
+                  theme(axis.text.x=element_text(margin=margin(t=0.5,r=0,b=0,l=0,unit ="cm"), angle = 90, hjust = 0.5, vjust = 0.5)) + 
+                  labs(x='')
+                
+              }
+)
+
+```
+
+
+#### Interactive bar plots showing all taxa
+
+
+**PHYLUM**
+
+***
+
+
+**ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plotly::ggplotly(plots$Phylum)
+```
+
+
+**ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plots$Phylum$data$samples <- factor(plots$Phylum$data$samples, levels = sort(sample_order))
+plotly::ggplotly(plots$Phylum)
+```
+
+
+**CLASS**
+
+***
+
+
+**ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plotly::ggplotly(plots$Class)
+```
+
+
+**ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plots$Class$data$samples <- factor(plots$Class$data$samples, levels = sort(sample_order))
+plotly::ggplotly(plots$Class)
+```
+
+
+**ORDER**
+
+***
+
+
+**ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plotly::ggplotly(plots$Order)
+```
+
+
+**ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plots$Order$data$samples <- factor(plots$Order$data$samples, levels = sort(sample_order))
+plotly::ggplotly(plots$Order)
+```
+
+
+**FAMILY**
+
+***
+
+
+**ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plotly::ggplotly(plots$Family)
+```
+
+
+**ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plots$Family$data$samples <- factor(plots$Family$data$samples, levels = sort(sample_order))
+plotly::ggplotly(plots$Family)
+```
+
+
+**GENUS**
+
+***
+
+
+**ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plotly::ggplotly(plots$Genus)
+```
+
+
+**ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plots$Genus$data$samples <- factor(plots$Genus$data$samples, levels = sort(sample_order))
+plotly::ggplotly(plots$Genus)
+```
+
+
+**SPECIES**
+
+***
+
+
+**ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plotly::ggplotly(plots$Species)
+```
+
+
+**ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.align='center', fig.height=10, fig.width=20}
+plots$Species$data$samples <- factor(plots$Species$data$samples, levels = sort(sample_order))
+plotly::ggplotly(plots$Species)
+```
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+
+# BY TREATMENT GROUPS
+# Make relative abundance long formatted tables for making bar plots
+group_rare <- TRUE
+remove_unclassified <- TRUE
+# Convert from wide to long format for every treatment group of interest
+
+level_orders <- list(Biofilter_media_order[grep(pattern = "control|NONE", x =Biofilter_media_order, invert = TRUE)],
+                     Group_order[grep(pattern = "control|NONE", x = Group_order, invert = TRUE)])
+
+names(level_orders) <- groups
+
+
+group_relAbundace_tbs_rare_grouped <- map2(.x = groups, .y = level_orders, .f = function(group=.x, level_order=.y){
+  #print(group)
+  map2(.x = taxon_levels, .y = taxon_tables, .f = function(taxon_level=.x, taxon_table=.y){
+    #print(taxon_level)
+    taxon_table <- taxon_table$abundance_table
+    if(remove_unclassified){
+      
+      unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+      taxon_table <- taxon_table[-unclassified_rows,]
+      
+    }
+    
+    # Keep only species with abundances greater than or equal to 1% for speed and to reduce noise
+    if(taxon_level %in% c("Species", "Genus")){
+      # keep on only features with relative abundance greater than or equal to 1%  
+      abundant_features <- apply(X = pavian::normalize(taxon_table), MARGIN = 1, FUN = function(x) max(x) >= 1/100)
+      taxon_table <- taxon_table[abundant_features,]
+    }
+    
+    taxon_table <- as.data.frame(taxon_table %>% t()) 
+    taxon_table <- (collapse_samples(taxon_table = taxon_table, metadata = no_control_metadata, group = group, convertToRelativeAbundance = TRUE)$taxon_table * 100 )  %>%  as.data.frame(check.names=FALSE)
+    if(ncol(taxon_table) > maximum_number_of_taxa){
+      group_rare <- TRUE
+    }
+    
+    if(group_rare){
+      taxon_table <- group_low_abund_taxa(taxon_table %>%  as.data.frame(check.names=FALSE, stringAsFactor=FALSE),
+                                          threshold = ifelse(test = taxon_level %in% c("Species", "Genus"), yes = 5,no = 1))
+      group_rare <- FALSE
+    }
+    
+    taxon_table[,group] <- rownames(taxon_table)
+    #change from wide to long format
+    taxon_table <- taxon_table %>% 
+      gather(key= !!taxon_level, value = "relativeAbundance", -!!group)
+    
+    taxon_table[,group] <- factor(x = taxon_table[,group], levels = level_order)
+    
+    return(taxon_table)
+    
+  })
+  
+})
+
+
+
+
+group_rare <- FALSE
+
+group_relAbundace_tbs <- map2(.x = groups, .y = level_orders, .f = function(group=.x, level_order=.y){
+  
+  map2(.x = taxon_levels, .y = taxon_tables, .f = function(taxon_level=.x, taxon_table=.y){
+    
+    taxon_table <- taxon_table$abundance_table
+    
+    if(remove_unclassified){
+      
+      unclassified_rows <- taxon_table %>% rownames() %>% grep("class|assigned", x= .)
+      taxon_table <- taxon_table[-unclassified_rows,]
+      
+    }
+    
+    # Keep only species with abundances greater than or equal to 1% for speed and to reduce noise
+    if(taxon_level %in% c("Species", "Genus")){
+      # keep on only features with relative abundance greater than or equal to 1%  
+      abundant_features <- apply(X = pavian::normalize(taxon_table), MARGIN = 1, FUN = function(x) max(x) >= 1/100)
+      taxon_table <- taxon_table[abundant_features,]
+    }
+    
+    taxon_table <- as.data.frame(taxon_table %>% t()) 
+    taxon_table <- (collapse_samples(taxon_table = taxon_table, metadata = no_control_metadata, group = group, convertToRelativeAbundance = TRUE)$taxon_table * 100 )  %>%  as.data.frame(check.names=FALSE)
+    
+    if(ncol(taxon_table) > maximum_number_of_taxa){
+      group_rare <- TRUE
+    }
+    
+    if(group_rare){
+      taxon_table <- group_low_abund_taxa(taxon_table %>%  as.data.frame(check.names=FALSE, stringAsFactor=FALSE),
+                                          threshold = 1)
+      group_rare <- FALSE
+    }
+    
+    taxon_table[,group] <- rownames(taxon_table)
+    
+    
+    #change from wide to long format
+    taxon_table <- taxon_table %>% 
+      gather(key= !!taxon_level, value = "relativeAbundance", -!!group)
+    
+    taxon_table[,group] <- factor(x = taxon_table[,group], levels = level_order)
+    
+    return(taxon_table)
+    
+  })
+  
+})
+
+```
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+# Make bar plots
+y_lab <- "Relative abundance (%)"  
+y <- "relativeAbundance"
+# Plots with rare taxa grouped
+group_plots_rare_grouped <- map2(.x = groups, .y = x_labs, .f = function(group=.x, x_lab=.y){
+  # make plot
+  map2(.x = group_relAbundace_tbs_rare_grouped[[group]], .y = taxon_levels, 
+       .f = function(relAbundace_tb=.x, taxon_level=.y){
+         
+         p <- ggplot(data =  relAbundace_tb, mapping = aes_string(x=group, y=y)) +
+           geom_col(aes_string(fill = taxon_level)) + 
+           publication_format +
+           labs(x = x_lab , y = y_lab) + 
+           scale_fill_manual(values = custom_palette) +
+           labs(x='')
+         if(group == "Group"){
+           # change the x.text andgle to 90 degrees 
+           p <- p + theme(axis.text.x=element_text(margin=margin(t=0.5,r=0,b=0,l=0,unit ="cm"),
+                                                   angle = 90, hjust = 0.5, vjust = 0.5))
+           if(taxon_level != "Species"){
+             p <- p +  theme(axis.text.x = element_blank())
+           }
+         }
+         return(p) 
+       }
+  )
+})
+
+group_plots <- map2(.x = groups, .y = x_labs, .f = function(group=.x, x_lab=.y){
+  # make plot
+  map2(.x = group_relAbundace_tbs[[group]], .y = taxon_levels, 
+       .f = function(relAbundace_tb=.x, taxon_level=.y){
+         ggplot(data =  relAbundace_tb, mapping = aes_string(x=group, y=y)) +
+           geom_col(aes_string(fill = taxon_level)) + 
+           publication_format +
+           labs(x = x_lab , y = y_lab) + 
+           scale_fill_manual(values = custom_palette) +
+           labs(x='')
+         
+       }
+  )}
+)
+```
+
+
+#### By Treatment groups
+
+Genera and Species with less than 1% relative abundance were excluded when making the stacked bar plots.
+
+</br>
+</br>
+
+
+### Group
+
+
+#### Static faceted plots showing only dominant taxa
+
+
+##### Ordered by treatment event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.height=50, fig.width=30}
+group <- "Group"
+y <- "OTU"
+p_adj <- "fdr"
+wrap_plots(group_plots_rare_grouped[[group]], ncol = 1)
+```
+
+
+##### Ordered by event
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE, fig.height=50, fig.width=30}
+group <- "Group"
+
+for(taxon_level in taxon_levels){
+  group_plots_rare_grouped[[group]][[taxon_level]]$data[,group] <- 
+    factor(group_plots_rare_grouped[[group]][[taxon_level]]$data[,group], levels=sort(Group_order))
+}
+
+
+wrap_plots(group_plots_rare_grouped[[group]], ncol = 1)
+```
+
+
+#### Interactive plots showing all taxa
+
+
+**PHYLUM**
+
+***
+
+
+**Ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Phylum"
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Phylum"
+
+group_plots[[group]][[taxon_level]]$data[,group] <- 
+  factor(group_plots[[group]][[taxon_level]]$data[,group], levels=sort(Group_order))
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Differential abundance testing using ANCOM**
+
+
+The box plot shows the log abundance of the significantly differential abundant taxa detected using ANCOM.
+
+
+*Ordered by treatment event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=20, fig.width=30, message=FALSE, warning = FALSE}
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+*Ordered by event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=20, fig.width=30, message=FALSE, warning = FALSE}
+# Sort group by Event
+ancom_results[[group]][[taxon_level]]$plot$data$Group <-
+  factor(ancom_results[[group]][[taxon_level]]$plot$data$Group, levels= sort(Group_order))
+
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format  + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+**ANCOM statistics table**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+create_dt(ancom_results[[group]][[taxon_level]]$stat_table %>% mutate_if(is.numeric, round, digits=3))
+```
+
+
+**Pairwise comparison between grouping levels**
+
+This table shows the pairwise comparison of the significant taxa's log abundance between bio filters at different time points using Wilcoxon's rank sum test. p.adj = adjusted p-value using fdr p-value adjustment method; p.format = formatted p-value.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+
+plot_data <- ancom_results[[group]][[taxon_level]]$plot$data
+feature_names <- unique(plot_data$OTU_name) %>% as.character()
+names(feature_names) <- feature_names
+
+ancom_sig_table <- map_dfr(.x = feature_names, .f = function(feature=.x){ 
+  
+  df <- compare_groups(x = "Group", y=y, Data = subset(plot_data, OTU_name == feature), p.adjust.method = p_adj)
+  
+  df$feature <- feature
+  
+  df <- df %>% dplyr::select(-.y.,-p, -method) %>% dplyr::select(feature, everything())
+  
+  return(df)
+  
+})
+
+create_dt(ancom_sig_table %>% dplyr::select(-p.signif) %>%
+            mutate_if(startsWith(colnames(.),'p'), as.numeric) %>%
+            mutate_if(is.numeric, round, digits=3))
+```
+
+
+
+**CLASS**
+
+***
+
+
+**Ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Class"
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Class"
+
+group_plots[[group]][[taxon_level]]$data[,group] <- 
+  factor(group_plots[[group]][[taxon_level]]$data[,group], levels=sort(Group_order))
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Differential abundance testing using ANCOM**
+
+
+The box plot shows the log abundance of the significantly differential abundant taxa detected using ANCOM.
+
+
+*Ordered by treatment event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=15, fig.width=30, message=FALSE, warning = FALSE}
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format  + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+*Ordered by event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=15, fig.width=30, message=FALSE, warning = FALSE}
+# Sort group by Event
+ancom_results[[group]][[taxon_level]]$plot$data$Group <-
+  factor(ancom_results[[group]][[taxon_level]]$plot$data$Group, levels= sort(Group_order))
+
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format  + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+**ANCOM statistics table**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+create_dt(ancom_results[[group]][[taxon_level]]$stat_table %>% mutate_if(is.numeric, round, digits=3))
+```
+
+
+**Pairwise comparison between grouping levels**
+
+This table shows the pairwise comparison of the significant taxa's log abundance between bio filters at different time points using Wilcoxon's rank sum test. p.adj = adjusted p-value using fdr p-value adjustment method; p.format = formatted p-value.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+
+plot_data <- ancom_results[[group]][[taxon_level]]$plot$data
+feature_names <- unique(plot_data$OTU_name) %>% as.character()
+names(feature_names) <- feature_names
+
+ancom_sig_table <- map_dfr(.x = feature_names, .f = function(feature=.x){ 
+  
+  df <- compare_groups(x = "Group", y=y, Data = subset(plot_data, OTU_name == feature), p.adjust.method = p_adj)
+  
+  df$feature <- feature
+  
+  df <- df %>% dplyr::select(-.y.,-p, -method) %>% dplyr::select(feature, everything())
+  
+  return(df)
+  
+})
+
+create_dt(ancom_sig_table %>% dplyr::select(-p.signif) %>%
+            mutate_if(startsWith(colnames(.),'p'), as.numeric) %>%
+            mutate_if(is.numeric, round, digits=3))
+```
+
+
+**ORDER**
+
+***
+
+
+**Ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Order"
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Order"
+
+group_plots[[group]][[taxon_level]]$data[,group] <- 
+  factor(group_plots[[group]][[taxon_level]]$data[,group], levels=sort(Group_order))
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Differential abundance testing using ANCOM**
+
+
+The box plot shows the log abundance of the significantly differential abundant taxa detected using ANCOM.
+
+
+*Ordered by treatment event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=15, fig.width=30, message=FALSE, warning = FALSE}
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+*Ordered by event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=15, fig.width=30, message=FALSE, warning = FALSE}
+# Sort group by Event
+ancom_results[[group]][[taxon_level]]$plot$data$Group <-
+  factor(ancom_results[[group]][[taxon_level]]$plot$data$Group, levels= sort(Group_order))
+
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format  + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+**ANCOM statistics table**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+create_dt(ancom_results[[group]][[taxon_level]]$stat_table %>% mutate_if(is.numeric, round, digits=3))
+```
+
+
+**Pairwise comparison between grouping levels**
+
+This table shows the pairwise comparison of the significant taxa's log abundance between bio filters at different time points using Wilcoxon's rank sum test. p.adj = adjusted p-value using fdr p-value adjustment method; p.format = formatted p-value.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+
+plot_data <- ancom_results[[group]][[taxon_level]]$plot$data
+feature_names <- unique(plot_data$OTU_name) %>% as.character()
+names(feature_names) <- feature_names
+
+ancom_sig_table <- map_dfr(.x = feature_names, .f = function(feature=.x){ 
+  
+  df <- compare_groups(x = "Group", y=y, Data = subset(plot_data, OTU_name == feature), p.adjust.method = p_adj)
+  
+  df$feature <- feature
+  
+  df <- df %>% dplyr::select(-.y.,-p, -method) %>% dplyr::select(feature, everything())
+  
+  return(df)
+  
+})
+
+create_dt(ancom_sig_table %>% dplyr::select(-p.signif) %>%
+            mutate_if(startsWith(colnames(.),'p'), as.numeric) %>%
+            mutate_if(is.numeric, round, digits=3))
+```
+
+
+**FAMILY**
+
+***
+
+
+**Ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Family"
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Family"
+
+group_plots[[group]][[taxon_level]]$data[,group] <- 
+  factor(group_plots[[group]][[taxon_level]]$data[,group], levels=sort(Group_order))
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Differential abundance testing using ANCOM**
+
+
+The box plot shows the log abundance of the significantly differential abundant taxa detected using ANCOM.
+
+
+*Ordered by treatment event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=15, fig.width=30, message=FALSE, warning = FALSE}
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+*Ordered by event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=15, fig.width=30, message=FALSE, warning = FALSE}
+# Sort group by Event
+ancom_results[[group]][[taxon_level]]$plot$data$Group <-
+  factor(ancom_results[[group]][[taxon_level]]$plot$data$Group, levels= sort(Group_order))
+
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format  + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+**ANCOM statistics table**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+create_dt(ancom_results[[group]][[taxon_level]]$stat_table %>% mutate_if(is.numeric, round, digits=3))
+```
+
+
+**Pairwise comparison between grouping levels**
+
+This table shows the pairwise comparison of the significant taxa's log abundance between bio filters at different time points using Wilcoxon's rank sum test. p.adj = adjusted p-value using fdr p-value adjustment method; p.format = formatted p-value.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+
+plot_data <- ancom_results[[group]][[taxon_level]]$plot$data
+feature_names <- unique(plot_data$OTU_name) %>% as.character()
+names(feature_names) <- feature_names
+
+ancom_sig_table <- map_dfr(.x = feature_names, .f = function(feature=.x){ 
+  
+  df <- compare_groups(x = "Group", y=y, Data = subset(plot_data, OTU_name == feature), p.adjust.method = p_adj)
+  
+  df$feature <- feature
+  
+  df <- df %>% dplyr::select(-.y.,-p, -method) %>% dplyr::select(feature, everything())
+  
+  return(df)
+  
+})
+create_dt(ancom_sig_table %>% dplyr::select(-p.signif) %>%
+            mutate_if(startsWith(colnames(.),'p'), as.numeric) %>%
+            mutate_if(is.numeric, round, digits=3))
+```
+
+
+**GENUS**
+
+***
+
+
+**Ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Genus"
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+taxon_level <- "Genus"
+
+group_plots[[group]][[taxon_level]]$data[,group] <- 
+  factor(group_plots[[group]][[taxon_level]]$data[,group], levels=sort(Group_order))
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Differential abundance testing using ANCOM**
+
+
+The box plot shows the log abundance of the significantly differential abundant taxa detected using ANCOM.
+
+
+*Ordered by treatment event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=20, fig.width=30, message=FALSE, warning = FALSE}
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+*Ordered by event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=20, fig.width=30, message=FALSE, warning = FALSE}
+# Sort group by Event
+ancom_results[[group]][[taxon_level]]$plot$data$Group <-
+  factor(ancom_results[[group]][[taxon_level]]$plot$data$Group, levels= sort(Group_order))
+
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format  + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+**ANCOM statistics table**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+create_dt(ancom_results[[group]][[taxon_level]]$stat_table %>% mutate_if(is.numeric, round, digits=3))
+```
+
+
+**Pairwise comparison between grouping levels**
+
+This table shows the pairwise comparison of the significant taxa's log abundance between bio filters at different time points using Wilcoxon's rank sum test. p.adj = adjusted p-value using fdr p-value adjustment method; p.format = formatted p-value.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+
+plot_data <- ancom_results[[group]][[taxon_level]]$plot$data
+feature_names <- unique(plot_data$OTU_name) %>% as.character()
+names(feature_names) <- feature_names
+
+ancom_sig_table <- map_dfr(.x = feature_names, .f = function(feature=.x){ 
+  
+  df <- compare_groups(x = "Group", y=y, Data = subset(plot_data, OTU_name == feature), p.adjust.method = p_adj)
+  
+  df$feature <- feature
+  
+  df <- df %>% dplyr::select(-.y.,-p, -method) %>% dplyr::select(feature, everything())
+  
+  return(df)
+  
+})
+create_dt(ancom_sig_table %>% dplyr::select(-p.signif) %>%
+            mutate_if(startsWith(colnames(.),'p'), as.numeric) %>%
+            mutate_if(is.numeric, round, digits=3))
+```
+
+
+**SPECIES**
+
+***
+
+
+**Ordered by treatment event**
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=8, fig.width=30, message=FALSE, warning = FALSE}
+taxon_level <- "Species"
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Ordered by event**
+
+
+```{r echo=FALSE, include=TRUE, comment='', fig.align='center', fig.height=8, fig.width=30, message=FALSE, warning = FALSE}
+taxon_level <- "Species"
+
+group_plots[[group]][[taxon_level]]$data[,group] <- 
+  factor(group_plots[[group]][[taxon_level]]$data[,group], levels=sort(Group_order))
+plotly::ggplotly(group_plots[[group]][[taxon_level]] + theme(axis.text.x= element_text(angle = 90, hjust = 1)))
+```
+
+
+**Differential abundance testing using ANCOM**
+
+
+The box plot shows the log abundance of the significantly differential abundant taxa detected using ANCOM.
+
+
+*Ordered by treatment event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=40, fig.width=30, message=FALSE, warning = FALSE}
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+*Ordered by event*
+
+
+```{r echo=FALSE, include=TRUE, comment='',  fig.align='center', fig.height=40, fig.width=30, message=FALSE, warning = FALSE}
+# Sort group by Event
+ancom_results[[group]][[taxon_level]]$plot$data$Group <-
+  factor(ancom_results[[group]][[taxon_level]]$plot$data$Group, levels= sort(Group_order))
+
+ancom_results[[group]][[taxon_level]]$plot + labs(x=NULL) + publication_format  + theme(axis.text.x= element_text(angle = 90, hjust = 1))
+```
+
+
+**ANCOM statistics table**
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+create_dt(ancom_results[[group]][[taxon_level]]$stat_table %>% mutate_if(is.numeric, round, digits=3))
+```
+
+
+**Pairwise comparison between grouping levels**
+
+This table shows the pairwise comparison of the significant taxa's log abundance between bio filters at different time points using Wilcoxon's rank sum test. p.adj = adjusted p-value using fdr p-value adjustment method; p.format = formatted p-value.
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+
+plot_data <- ancom_results[[group]][[taxon_level]]$plot$data
+feature_names <- unique(plot_data$OTU_name) %>% as.character()
+names(feature_names) <- feature_names
+
+ancom_sig_table <- map_dfr(.x = feature_names, .f = function(feature=.x){ 
+  
+  df <- compare_groups(x = "Group", y=y, Data = subset(plot_data, OTU_name == feature), p.adjust.method = p_adj)
+  
+  df$feature <- feature
+  
+  df <- df %>% dplyr::select(-.y.,-p, -method) %>% dplyr::select(feature, everything())
+  
+  return(df)
+  
+})
+
+create_dt(ancom_sig_table %>% dplyr::select(-p.signif) %>%
+            mutate_if(startsWith(colnames(.),'p'), as.numeric) %>%
+            mutate_if(is.numeric, round, digits=3))
+```
+
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+save.image(file = glue::glue('{plot_dir}/{analysis_name}.RData'))
+sessionInfo()
+```

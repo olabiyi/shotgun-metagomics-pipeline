@@ -1,0 +1,69 @@
+---
+title: "Random Forest"
+author: "Olabiyi Obayomi"
+date: "4 5 2021"
+output: html_document
+params:
+  info_rdata: "general_info.RData"
+---
+
+
+# Determining feature importance with Random Forest
+
+
+```{r random_forest, echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+#library(randomForest)
+taxon_level <- "Species"
+groups <- c("Biofilter_media")
+names(groups) <- groups
+res <- map(.x = groups, .f = function(group=.x){
+  print(group)
+  run_random_forest(taxon_tables[[taxon_level]]$abundance_table, 
+                    no_control_metadata, group,
+                    TRUE, model_significance=FALSE, top=200)
+})
+```
+
+
+## Bio Media Type
+
+
+### Model results, accuracy and signifance testing
+
+
+```{r  echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+cat("============= Model Summary ===================\n\n")
+res[["Biofilter_media"]]$fit
+# cat("\n\n============= Model Significance ===================\n\n")
+# res[["Biofilter_media"]]$significance
+cat("\n\n============= Cross Validation  ===================\n\n")
+res[["Biofilter_media"]]$cross_validation
+```
+
+
+### Feature importance 
+
+
+#### Plot
+
+
+```{r  echo=FALSE, include=TRUE, comment='', fig.align='center', fig.height=8, fig.width=14, message=FALSE, warning = FALSE}
+ggplotly(res[["Biofilter_media"]]$plot)
+```
+
+
+#### Table
+
+
+```{r echo=FALSE, include=TRUE, comment='', message=FALSE, warning = FALSE}
+res[["Biofilter_media"]]$feature_importance %>% 
+  mutate_if(is.numeric, round, digits=3) %>%
+  dplyr::select(features,everything()) %>% 
+  create_dt()
+```
+
+
+```{r echo=FALSE, include=FALSE, comment='', message=FALSE, warning = FALSE}
+save.image(file = glue::glue('{plot_dir}/{analysis_name}.RData'))
+sessionInfo()
+```

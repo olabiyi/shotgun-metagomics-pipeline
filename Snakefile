@@ -415,7 +415,7 @@ rule Kaiju2_merge_tables:
         for taxon_level in TAXON_LEVELS:
             shell("{params.program} -t {params.nodes} -n {params.names} "
                   "-p -r {taxon_level} -o {params.prefix}.{taxon_level}.tsv  {input}")
-            shell("sed -i -E 's/.+\/(.+).kaiju\.out/\1/g' {params.prefix}.{taxon_level}.tsv  && " 
+            shell("sed -i -E 's/.+\/(.+).kaiju\.out/\\1/g' {params.prefix}.{taxon_level}.tsv  && " 
                   "sed -i -E 's/file/sample/' {params.prefix}.{taxon_level}.tsv")
 
 
