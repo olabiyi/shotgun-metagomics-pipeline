@@ -22,6 +22,9 @@ export PERL5LIB='/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/Metagenom
 # submit a maximum 100 jobs
 #  # wait for 60 seconds before declaring that a job has failed
 snakemake \
+        --keep-going \
+        --restart-times 3 \
+        --rerun-incomplete  \
 	--cluster-config config/config.yaml \
 	--cluster "qsub -q {cluster.queue} -S {cluster.shell} -cwd -V -N {rule} -pe shared {threads}" \
 	--jobs 100 \ 
