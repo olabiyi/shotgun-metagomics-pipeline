@@ -4,10 +4,6 @@ from os import path
 onsuccess:
     print("Workflow completed without any error")
 
-onerror:
-    print("An error occurred")
-    shell("mail -s 'An error occurred' obadbotanist@yahoo.com < {log}")
-
 configfile: "config/config.yaml"
 
 sample_file = config["sample_file"]
@@ -27,6 +23,12 @@ metadata = pd.read_table(sample_file)
 TAXON_LEVELS=['phylum', 'class', 'order', 'family', 'genus', 'species']
 
 ruleorder: Diamond_blastx > Megan_classify
+
+mail=config['mail']
+onerror:
+    print("An error occurred")
+    shell("mail -s 'An error occurred' {mail} < {log}")
+
 
 
 # Pseudo rule that defines the targets for the pipeline
@@ -274,7 +276,7 @@ rule Concat_reads:
 
 
 # Make diamond database of proteins of interest
-rule make_diamond_DB:
+rule Make_diamond_DB:
     input: 
         config['databases']['proteins_of_interest']
     output: 
@@ -287,7 +289,7 @@ rule make_diamond_DB:
 
 
 #-----------------Read-based finding proteins of interest --------------------------------
-rule reads_find_proteins:
+rule Reads_find_proteins:
     input:
         query="09.Concat_reads/{sample}/{sample}.fastq.gz",
         database=path.splitext(config['databases']['proteins_of_interest'])[0] + '.dmnd'
@@ -1408,10 +1410,10 @@ rule classify_bins_per_sample:
         --cpus {params.threads} 2> {log}
         """
 
-localrules: metaerg_annotate_bins_per_sample
+localrules: Metaerg_annotate_bins_per_sample
 
 # This step should not be run on the cluste but run locally
-rule metaerg_annotate_bins_per_sample:
+rule Metaerg_annotate_bins_per_sample:
     input:
         "30.Bin_assembly_per_sample/{sample}/"
     output:

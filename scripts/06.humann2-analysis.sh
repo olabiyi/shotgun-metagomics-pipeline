@@ -159,7 +159,7 @@ function add_names_to_tables(){
         # function to add descriptive names to regrouped gene family tabsles
         local SAMPLE=$1
         local OUT_DIR=$2
-	local CLUSTER=$3
+	      local CLUSTER=$3
         local GROUPS_ONE=('infogo1000' 'go' 'pfam' 'eggnog') # names carried over from the regrouping step
 	#local KEGG=('kegg-module' 'kegg-pathway' 'kegg-orthology')
 

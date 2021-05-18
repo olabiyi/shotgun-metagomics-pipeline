@@ -6,6 +6,8 @@ project_dir: "/gpfs0/bioinfo/users/obayomi/shotGunMetagenomics/documentation/sna
 
 raw_data_dir: "01.raw_data/"
 
+mail: "obadbotanist@yahoo.com"
+
 paired: True
 
 project_name: "Duckweed"

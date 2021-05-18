@@ -1,0 +1,23 @@
+name: metaerg
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - perl-archive-extract
+  - perl-bioperl
+  - perl-bio-eutilities
+  - perl-dbd-sqlite
+  - perl-dbi
+  - perl-file-copy-recursive
+  - perl-lwp-protocol-https
+  - aragorn
+  - blast
+  - diamond
+  - hmmer
+  - minced
+  - prodigal
+  - perl-app-cpanminus
+  - wget
+  - python=2.7
+  - git
+  - patch
