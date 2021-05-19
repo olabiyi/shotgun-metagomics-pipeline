@@ -111,7 +111,7 @@ parameters:
         taxa2display: 25
         min_ntu_count: 100
 
-# full paths t your conda environments 
+# Full paths to your conda environments and their respective PERL5LIB directories
 conda:
     base:   
         env: "source activate /gpfs0/bioinfo/users/obayomi/miniconda3/"
@@ -131,6 +131,3 @@ conda:
     bioinfo: 
         env: "source activate /gpfs0/bioinfo/users/obayomi/miniconda3/envs/bioinfo/"
         perl5lib: "export PERL5LIB=/gpfs0/bioinfo/users/obayomi/miniconda3/envs/bioinfo/lib/5.26.2"
-    neatseq_flow:
-        env: "source activate /gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/NeatSeq_Flow/"
-        perl5lib: "export PERL5LIB=/gpfs0/bioinfo/apps/Miniconda2/Miniconda_v4.3.21/envs/NeatSeq_Flow/lib/site_perl/5.26.2/x86_64-linux-thread-multi"
